@@ -7,40 +7,35 @@ import model
 import poll
 import storage
 
-
-#import gevent.monkey
-#gevent.monkey.patch_socket()
-
 from pprint import pprint
 
 
-ACCEPTED = "ACCEPTED"
-ERROR = "ERROR"
-COMPLETED = "COMPLETED"
-
-def make_body(**kwargs):
-    return json.dumps(dict(**kwargs))
-
 def make_error_body(message):
-    return make_body(message=message)
+    return json.dumps(dict(message=message))
+
+def _parse_json(req, resp):
+    """Parse the request. Set resp.stats and resp.body on failure
+    :param req: a falcon request object
+    :param resp: a falcon response object
+    """
+    try:
+        body = req.stream.read()
+        return json.loads(body)
+    except ValueError as e:
+        err_msg = str(e) + ': ' + body
+        resp.status = falcon.HTTP_400
+        resp.body = make_error_body(error_msg)
+        return
+
 
 class ResourceCollection(object):
-    @classmethod
-    def _parse_json(cls, req, resp):
-        """Parse the request. Set resp.stats and resp.body on failure"""
-        try:
-            body = req.stream.read()
-            return json.loads(body)
-        except ValueError as e:
-            err_msg = str(e) + ': ' + body
-            resp.status = falcon.HTTP_400
-            resp.body = make_error_body(error_msg)
-            return
+    route = '/requests'
 
     def on_post(self, req, resp):
+        """Handle POST /requests"""
         resp.content_type = 'application/json'
         # parse request
-        data = self._parse_json(req, resp)
+        data = _parse_json(req, resp)
         if data is None:
             return
 
@@ -55,11 +50,14 @@ class ResourceCollection(object):
         # handle request
         poll.receive(poll_req)
         resp.status = falcon.HTTP_202
-        resp.body = make_body(**poll_req.to_dict())
+        resp.body = json.dumps(poll_req.to_dict())
 
 
 class Resource(object):
+    route = "/requests/{id}"
     def on_get(self, req, resp, id):
+        """Handle GET /requests/{id}"""
+        resp.content_type = 'application/json'
         try:
             poll_req = storage.get_entry(id)
         except Exception as e:
@@ -69,7 +67,7 @@ class Resource(object):
 
         resp.content_type = 'applciation/json'
         resp.status = falcon.HTTP_200
-        resp.body = make_body(**poll_req.to_dict())
+        resp.body = json.dumps(poll_req.to_dict())
 
 # the uWSGI callable
 # Run `uwsgi --wsgi-file thismodule.py --callable app`
@@ -78,7 +76,7 @@ app = falcon.API()
 resource_collection = ResourceCollection()
 resource = Resource()
 
-app.add_route('/requests', resource_collection)
-app.add_route('/requests/{id}', resource)
+app.add_route(ResourceCollection.route, resource_collection)
+app.add_route(Resource.route, resource)
 
 

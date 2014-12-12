@@ -5,9 +5,16 @@ import gevent
 import digdig
 import storage
 
+
+class Status:
+    ACCEPTED = "ACCEPTED"
+    ERROR = "ERROR"
+    COMPLETED = "COMPLETED"
+
+
 def receive(poll_req):
     # TODO: store in redis
-    poll_req.status = "ACCEPTED"
+    poll_req.status = Status.ACCEPTED
     storage.create_entry(poll_req)
     thing = gevent.spawn(_handle, poll_req)
     # what to do with thing?
@@ -39,9 +46,9 @@ def _handle(poll_req, timeout=60):
         gevent.sleep(2)
     print "loop done"
     if serial is not None and end_time is not None:
-        poll_req.status = "COMPLETED"
+        poll_req.status = Status.COMPLETED
         poll_req.time = end_time - poll_req.time
     else:
-        poll_req.status = "ERROR"
+        poll_req.status = Status.ERROR
         poll_req.time = None
     storage.update_entry(poll_req)
