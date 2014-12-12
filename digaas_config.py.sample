@@ -1,0 +1,5 @@
+# number of seconds the service spends polling for a request
+timeout = 120
+
+# number of seconds the service waits between queries for a zone
+frequency = 3

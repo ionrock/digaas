@@ -4,6 +4,7 @@ import gevent
 
 import digdig
 import storage
+import digaas_config as config
 
 
 class Status:
@@ -19,7 +20,7 @@ def receive(poll_req):
     thing = gevent.spawn(_handle, poll_req)
     # what to do with thing?
 
-def _handle(poll_req, timeout=60):
+def _handle(poll_req, timeout=config.timeout):
     """
     :param poll_req: The PollRequest to handle.
     :param timeout: When the PollRequest times out, in seconds.
@@ -43,7 +44,7 @@ def _handle(poll_req, timeout=60):
             print "Exception: " + str(e)
             pass
         # ensure we yield to other greenlets
-        gevent.sleep(2)
+        gevent.sleep(seconds=config.frequency)
     print "loop done"
     if serial is not None and end_time is not None:
         poll_req.status = Status.COMPLETED
