@@ -13,7 +13,7 @@ def get_redis_client():
 
 
 def fmt_value(poll_req):
-    return ("{status} {zone_name} {serial} {nameserver} {time}"
+    return ("{status} {zone_name} {serial} {nameserver} {start_time} {duration}"
             .format(**poll_req.to_dict()))
 
 def parse_value(val):
@@ -30,7 +30,8 @@ def parse_value(val):
         "zone_name":  cvt(parts[1]),
         "serial":     cvt(parts[2], type=int),
         "nameserver": cvt(parts[3]),
-        "time":       cvt(parts[4], type=float),
+        "start_time": cvt(parts[4], type=float),
+        "duration":   cvt(parts[5], type=float),
     }
 
 def create_entry(poll_req):

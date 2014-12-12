@@ -7,8 +7,8 @@ import storage
 
 
 class Status:
-    ACCEPTED = "ACCEPTED"
-    ERROR = "ERROR"
+    ACCEPTED  = "ACCEPTED"
+    ERROR     = "ERROR"
     COMPLETED = "COMPLETED"
 
 
@@ -47,8 +47,8 @@ def _handle(poll_req, timeout=60):
     print "loop done"
     if serial is not None and end_time is not None:
         poll_req.status = Status.COMPLETED
-        poll_req.time = end_time - poll_req.time
+        poll_req.duration = end_time - poll_req.start_time
     else:
         poll_req.status = Status.ERROR
-        poll_req.time = None
+        poll_req.duration = None
     storage.update_entry(poll_req)
