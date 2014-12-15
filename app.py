@@ -24,7 +24,7 @@ def _parse_json(req, resp):
     except ValueError as e:
         err_msg = str(e) + ': ' + body
         resp.status = falcon.HTTP_400
-        resp.body = make_error_body(error_msg)
+        resp.body = make_error_body(err_msg)
         return
 
 
@@ -68,6 +68,8 @@ class Resource(object):
         resp.content_type = 'application/json'
         try:
             poll_req = storage.get_poll_request(id)
+            if poll_req is None:
+                raise Exception("Poll request id {0} not found".format(id))
         except Exception as e:
             resp.status = falcon.HTTP_404  # could be bad request in some cases?
             resp.body = make_error_body(str(e))

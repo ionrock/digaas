@@ -1,8 +1,10 @@
 import uuid
 
+import poll
+
 class PollRequest(object):
 
-    def __init__(self, zone_name, nameserver, serial, start_time,
+    def __init__(self, zone_name, nameserver, serial, start_time, condition,
                  duration=None, id=None, status=None):
         """
         :param id: if None, generate a uuid.
@@ -14,13 +16,21 @@ class PollRequest(object):
         self.duration = float(duration) if duration is not None else None
         self.id = str(uuid.uuid4())
         self.status = status
+        self.condition = condition
 
     @classmethod
     def validate(cls, data):
-        for key in ('zone_name', 'nameserver', 'start_time', 'serial'):
+        keys = ('zone_name', 'nameserver', 'start_time', 'serial', 'condition')
+        for key in keys:
             if key not in data:
                 raise ValueError("Missing '{0}' from {1}. Expecting keys {2}"
-                                 .format(key, data, args))
+                                 .format(key, data, keys))
+
+        condition = data['condition']
+        if condition not in poll.Conditions.ALL:
+            raise ValueError("Invalid condition '{0}'. Must be one of {1}"
+                             .format(condition, poll.Conditions.ALL))
+
 
     @classmethod
     def from_dict(cls, data):
@@ -30,7 +40,8 @@ class PollRequest(object):
                            duration=data.get('duration'),
                            serial=data.get('serial'),
                            id=data.get('id'),
-                           status=data.get('status'))
+                           status=data.get('status'),
+                           condition=data.get('condition'))
 
     def to_dict(self):
         return dict(zone_name=self.zone_name,
@@ -39,4 +50,5 @@ class PollRequest(object):
                     duration=self.duration,
                     serial=self.serial,
                     id=self.id,
-                    status=self.status)
+                    status=self.status,
+                    condition=self.condition)
