@@ -1,12 +1,5 @@
 import uuid
 
-def check_has_keys(data, *args):
-    for key in args:
-        if key not in data:
-            raise ValueError("Missing '{0}' from {1}. Expecting keys {2}"
-                             .format(key, data, args))
-
-
 class PollRequest(object):
 
     def __init__(self, zone_name, nameserver, serial, start_time,
@@ -23,27 +16,21 @@ class PollRequest(object):
         self.status = status
 
     @classmethod
-    def from_dict(cls, data):
-        """Create a PollRequest from a dictionary.
+    def validate(cls, data):
+        for key in ('zone_name', 'nameserver', 'start_time', 'serial'):
+            if key not in data:
+                raise ValueError("Missing '{0}' from {1}. Expecting keys {2}"
+                                 .format(key, data, args))
 
-        :param data: A dictionary, which is validated
-        :raises ValueError: On failed validation.
-        """
-        check_has_keys(data, 'zone_name', 'nameserver', 'start_time', 'serial')
-        zone_name = data.get('zone_name')
-        nameserver = data.get('nameserver')
-        start_time = float(data.get('start_time'))  # TODO: to timestamp?
-        duration = float(data.get('duration')) if 'duration' in data else None
-        serial = int(data.get('serial'))
-        id = data.get('id')
-        status = data.get('status')
-        return PollRequest(zone_name=zone_name,
-                           nameserver=nameserver,
-                           start_time=start_time,
-                           duration=duration,
-                           serial=serial,
-                           id=id,
-                           status=status)
+    @classmethod
+    def from_dict(cls, data):
+        return PollRequest(zone_name=data.get('zone_name'),
+                           nameserver=data.get('nameserver'),
+                           start_time=data.get('start_time'),
+                           duration=data.get('duration'),
+                           serial=data.get('serial'),
+                           id=data.get('id'),
+                           status=data.get('status'))
 
     def to_dict(self):
         return dict(zone_name=self.zone_name,

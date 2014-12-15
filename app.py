@@ -14,7 +14,7 @@ def make_error_body(message):
     return json.dumps(dict(message=message))
 
 def _parse_json(req, resp):
-    """Parse the request. Set resp.stats and resp.body on failure
+    """Parse the request. Set resp.status and resp.body on failure
     :param req: a falcon request object
     :param resp: a falcon response object
     """
@@ -41,9 +41,16 @@ class ResourceCollection(object):
 
         # validate request
         try:
-            poll_req = model.PollRequest.from_dict(data)
+            model.PollRequest.validate(data)
         except ValueError as e:
             resp.status = falcon.HTTP_400
+            resp.body = make_error_body(str(e))
+            return
+
+        try:
+            poll_req = model.PollRequest.from_dict(data)
+        except Exception as e:
+            resp.status = falcon.HTTP_500
             resp.body = make_error_body(str(e))
             return
 
@@ -55,17 +62,17 @@ class ResourceCollection(object):
 
 class Resource(object):
     route = "/requests/{id}"
+
     def on_get(self, req, resp, id):
         """Handle GET /requests/{id}"""
         resp.content_type = 'application/json'
         try:
-            poll_req = storage.get_entry(id)
+            poll_req = storage.get_poll_request(id)
         except Exception as e:
             resp.status = falcon.HTTP_404  # could be bad request in some cases?
             resp.body = make_error_body(str(e))
             return
 
-        resp.content_type = 'applciation/json'
         resp.status = falcon.HTTP_200
         resp.body = json.dumps(poll_req.to_dict())
 

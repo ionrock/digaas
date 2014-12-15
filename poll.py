@@ -16,7 +16,7 @@ class Status:
 def receive(poll_req):
     # TODO: store in redis
     poll_req.status = Status.ACCEPTED
-    storage.create_entry(poll_req)
+    storage.create_poll_request(poll_req)
     thing = gevent.spawn(_handle, poll_req)
     # what to do with thing?
 
@@ -52,4 +52,4 @@ def _handle(poll_req, timeout=config.timeout):
     else:
         poll_req.status = Status.ERROR
         poll_req.duration = None
-    storage.update_entry(poll_req)
+    storage.update_poll_request(poll_req)
