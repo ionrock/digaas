@@ -3,3 +3,6 @@ timeout = 120
 
 # number of seconds the service waits between queries for a zone
 frequency = 3
+
+# path to your sqlite database file
+sqlite_db_file = 'digaas.db'

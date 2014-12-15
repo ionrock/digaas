@@ -3,7 +3,7 @@ import time
 import gevent
 
 import digdig
-import storage
+import storage_sqlite as storage
 import digaas_config as config
 
 

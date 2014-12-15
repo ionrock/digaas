@@ -5,7 +5,7 @@ import falcon
 import digdig
 import model
 import poll
-import storage
+import storage_sqlite as storage
 
 from pprint import pprint
 
