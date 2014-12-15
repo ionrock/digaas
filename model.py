@@ -14,7 +14,7 @@ class PollRequest(object):
         self.serial = int(serial)
         self.start_time = float(start_time) if start_time is not None else None
         self.duration = float(duration) if duration is not None else None
-        self.id = str(uuid.uuid4())
+        self.id = id if id is not None else str(uuid.uuid4())
         self.status = status
         self.condition = condition
 
