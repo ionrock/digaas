@@ -1,5 +1,4 @@
 import redis
-import uuid
 
 import model
 
@@ -19,12 +18,20 @@ def fmt_value(data):
     :param data: A dictionary as returned by PollRequest.to_dict()
     :return: A string to store as a value in redis
     """
+    def cvt(thing):
+        if thing is None:
+            return "None"
+        elif isinstance(thing, float):
+            # ensure our floats don't noticeably lose precision
+            return "{0:.17g}".format(thing)
+        return thing
+    data = {k: cvt(v) for k, v in data.iteritems()}
     return ("{status} {zone_name} {serial} {nameserver} {start_time} "
             "{duration} {condition} {timeout} {frequency}"
             .format(**data))
 
 def parse_value(val):
-    """This undoes the result of fmt_value.
+    """This undoes fmt_value.
 
     :param val: A string, as returned by fmt_value()
     :returns: A dictionary parsed from the given val
