@@ -5,7 +5,7 @@ import poll
 class PollRequest(object):
 
     def __init__(self, zone_name, nameserver, serial, start_time, condition,
-                 duration=None, id=None, status=None):
+                 timeout, frequency, duration=None, id=None, status=None):
         """
         :param id: if None, generate a uuid.
         """
@@ -17,10 +17,13 @@ class PollRequest(object):
         self.id = id if id is not None else str(uuid.uuid4())
         self.status = status
         self.condition = condition
+        self.timeout = int(timeout)
+        self.frequency = float(frequency)
 
     @classmethod
     def validate(cls, data):
-        keys = ('zone_name', 'nameserver', 'start_time', 'serial', 'condition')
+        keys = ('zone_name', 'nameserver', 'start_time', 'serial', 'condition',
+                'timeout', 'frequency')
         for key in keys:
             if key not in data:
                 raise ValueError("Missing '{0}' from {1}. Expecting keys {2}"
@@ -41,7 +44,9 @@ class PollRequest(object):
                            serial=data.get('serial'),
                            id=data.get('id'),
                            status=data.get('status'),
-                           condition=data.get('condition'))
+                           condition=data.get('condition'),
+                           timeout=data.get('timeout'),
+                           frequency=data.get('frequency'))
 
     def to_dict(self):
         return dict(zone_name=self.zone_name,
@@ -51,4 +56,6 @@ class PollRequest(object):
                     serial=self.serial,
                     id=self.id,
                     status=self.status,
-                    condition=self.condition)
+                    condition=self.condition,
+                    timeout=self.status,
+                    frequency=self.frequency)

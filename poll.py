@@ -32,7 +32,7 @@ def receive(poll_req):
     # what to do with thing?
 
 
-def _handle_serial_not_lower(poll_req, timeout=config.timeout):
+def _handle_serial_not_lower(poll_req):
     """
     :param poll_req: The PollRequest to handle.
     :param timeout: When the PollRequest times out, in seconds.
@@ -40,7 +40,7 @@ def _handle_serial_not_lower(poll_req, timeout=config.timeout):
     start = time.time()
     serial = None
     end_time = None
-    while time.time() - start < timeout:
+    while time.time() - start < poll_req.timeout:
         try:
             print time.time(), "querying for %s" % poll_req.zone_name
             serial = digdig.get_serial(poll_req.zone_name, poll_req.nameserver)
@@ -52,7 +52,7 @@ def _handle_serial_not_lower(poll_req, timeout=config.timeout):
             print e
             break
         # ensure we yield to other greenlets
-        gevent.sleep(seconds=config.frequency)
+        gevent.sleep(seconds=poll_req.frequency)
     print "serial_not_lower loop done"
     if serial is not None and end_time is not None:
         poll_req.status = Status.COMPLETED
@@ -63,10 +63,10 @@ def _handle_serial_not_lower(poll_req, timeout=config.timeout):
     storage.update_poll_request(poll_req)
 
 
-def _handle_zone_removed(poll_req, timeout=config.timeout):
+def _handle_zone_removed(poll_req):
     start = time.time()
     end_time = None
-    while time.time() - start < timeout:
+    while time.time() - start < poll_req.timeout:
         try:
             print time.time(), "querying for %s" % poll_req.zone_name
             serial = digdig.get_serial(poll_req.zone_name, poll_req.nameserver)
@@ -78,7 +78,7 @@ def _handle_zone_removed(poll_req, timeout=config.timeout):
             break
 
         # ensure we yield to other greenlets
-        gevent.sleep(seconds=config.frequency)
+        gevent.sleep(seconds=poll_req.frequency)
 
     print "zone_removed loop done"
     if end_time is not None:

@@ -17,6 +17,8 @@ def get_sqlite_client():
             "serial INTEGER,"
             "start_time REAL NOT NULL,"
             "duration REAL,"
+            "timeout INTEGER NOT NULL,"
+            "frequency REAL NOT NULL,"
             "status TEXT NOT NULL,"
             "condition TEXT NOT NULL)")
     return SQLITE_CLIENT
@@ -35,13 +37,15 @@ signal.signal(signal.SIGINT, handle_signal)
 
 def create_poll_request(poll_req):
     c = get_sqlite_client()
-    c.execute("INSERT INTO poll_requests VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
+    c.execute("INSERT INTO poll_requests VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
               (poll_req.id,
               poll_req.zone_name,
               poll_req.nameserver,
               poll_req.serial,
               poll_req.start_time,
               poll_req.duration,
+              poll_req.timeout,
+              poll_req.frequency,
               poll_req.status,
               poll_req.condition))
     # committing on every create is slow. Ideally, we would commit less
@@ -66,5 +70,7 @@ def get_poll_request(id):
                                  serial     = row[3],
                                  start_time = row[4],
                                  duration   = row[5],
-                                 status     = row[6],
-                                 condition  = row[7])
+                                 timeout    = row[6],
+                                 frequency  = row[7],
+                                 status     = row[8],
+                                 condition  = row[9])

@@ -17,7 +17,8 @@ def fmt_value(data):
     :param data: A dictionary as returned by PollRequest.to_dict()
     :return: A string to store as a value in redis
     """
-    return ("{status} {zone_name} {serial} {nameserver} {start_time} {duration} {condition}"
+    return ("{status} {zone_name} {serial} {nameserver} {start_time} "
+            "{duration} {condition} {timeout} {frequency}"
             .format(**data))
 
 def parse_value(val):
@@ -44,6 +45,8 @@ def parse_value(val):
         "start_time": cvt(parts[4], type=float),
         "duration":   cvt(parts[5], type=float),
         "condition":  cvt(parts[6]),
+        "timeout":    cvt(parts[7]),
+        "frequency":  cvt(parts[8]),
     }
 
 def create_poll_request(poll_req):
