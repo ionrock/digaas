@@ -57,5 +57,5 @@ class PollRequest(object):
                     id=self.id,
                     status=self.status,
                     condition=self.condition,
-                    timeout=self.status,
+                    timeout=self.timeout,
                     frequency=self.frequency)

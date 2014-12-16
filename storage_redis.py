@@ -3,6 +3,8 @@ import uuid
 
 import model
 
+print "USING REDIS STORAGE"
+
 REDIS_CLIENT = None
 def get_redis_client():
     global REDIS_CLIENT
@@ -45,8 +47,8 @@ def parse_value(val):
         "start_time": cvt(parts[4], type=float),
         "duration":   cvt(parts[5], type=float),
         "condition":  cvt(parts[6]),
-        "timeout":    cvt(parts[7]),
-        "frequency":  cvt(parts[8]),
+        "timeout":    cvt(parts[7], type=int),
+        "frequency":  cvt(parts[8], type=float),
     }
 
 def create_poll_request(poll_req):

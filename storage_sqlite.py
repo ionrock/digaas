@@ -32,7 +32,7 @@ def handle_signal(signal, frame):
         SQLITE_CLIENT.commit()
         SQLITE_CLIENT.close()
     sys.exit(0)
-print "registering signal handler for sqlite cleanup"
+print __file__ + ": registering signal handler for sqlite cleanup"
 signal.signal(signal.SIGINT, handle_signal)
 
 def create_poll_request(poll_req):

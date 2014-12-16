@@ -1,8 +1,6 @@
-# number of seconds the service spends polling for a request
-timeout = 120
-
-# number of seconds the service waits between queries for a zone
-frequency = 3
+# select which storage you want: either storage_redis or storage_sqlite
+import storage_sqlite as storage
+# import storage_redis as storage
 
 # path to your sqlite database file
 sqlite_db_file = 'digaas.db'

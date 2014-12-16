@@ -3,8 +3,8 @@ import time
 import gevent
 
 import digdig
-import storage_sqlite as storage
 import digaas_config as config
+from digaas_config import storage
 
 
 class Status:

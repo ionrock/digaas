@@ -5,9 +5,7 @@ import falcon
 import digdig
 import model
 import poll
-import storage_sqlite as storage
-
-from pprint import pprint
+from digaas_config import storage
 
 
 def make_error_body(message):
