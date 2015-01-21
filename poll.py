@@ -22,7 +22,6 @@ class Conditions:
 
 
 def receive(poll_req):
-    # TODO: store in redis
     poll_req.status = Status.ACCEPTED
     storage.create_poll_request(poll_req)
     if poll_req.condition == Conditions.SERIAL_NOT_LOWER:
@@ -33,9 +32,11 @@ def receive(poll_req):
 
 
 def _handle_serial_not_lower(poll_req):
-    """
+    """Handle a poll request to check that the serial number of the zone is not
+    lower than the provided poll_req.serial. This is used for checking newly
+    created and updated zones.
+
     :param poll_req: The PollRequest to handle.
-    :param timeout: When the PollRequest times out, in seconds.
     """
     start = time.time()
     serial = None
@@ -64,6 +65,8 @@ def _handle_serial_not_lower(poll_req):
 
 
 def _handle_zone_removed(poll_req):
+    """Handle a poll request to check that a zone is absent from
+    poll_req.nameserver"""
     start = time.time()
     end_time = None
     while time.time() - start < poll_req.timeout:

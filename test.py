@@ -8,6 +8,10 @@ import requests
 
 from designate_client import DesignateClient
 
+class TimeoutException(Exception):
+    def __init__(self, msg):
+        super(Exception, self).__init__(msg)
+
 
 class Datagen(object):
 
@@ -19,7 +23,6 @@ class Datagen(object):
     def get_random_zone(cls):
         return "{0}.{1}.com.".format(cls.get_random_string(random.randrange(2, 6)),
                                      cls.get_random_string(random.randrange(5, 30)))
-
 
 class DigaasClient(object):
 
@@ -59,12 +62,31 @@ class TestPollRequest(unittest.TestCase):
         cls.designate_client = DesignateClient(endpoint='http://192.168.33.20:9001')
         cls.nameserver = '192.168.33.20'
 
+    def post_random_zone(self):
+        """Create a random zone through Designate and return the response"""
+        zone = Datagen.get_random_zone()
+        resp = self.designate_client.post_zone(
+            name=zone, email="mickey@example.com", ttl=2400)
+        self.assertEquals(resp.status_code, 201)
+        return resp
+
+    @classmethod
+    def wait_for_status(cls, api_call, check, interval, timeout):
+        end_time = time.time() + timeout
+        while True:
+            if time.time() >= end_time:
+                raise TimeoutException("Timed out before completion")
+            if check(api_call()):
+                break
+            else:
+                time.sleep(interval)
+
     def test_poll_request_serial_not_lower_timeout(self):
-        """Check that I can:
-            1. submit a poll request
-            2. see the "ACCEPTED" status
-            3. allow the request to timeout
-            4. move into an error state
+        """Check a poll request times out for an absent zone
+        Check that I can:
+            1. Submit a poll request with a specific timeout
+            2. Wait for the poll request to timeout
+            3. See the poll request move to the ERROR state
         """
         # we're assuming this zone doesn't exist on the nameserver
         zone = Datagen.get_random_zone()
@@ -117,19 +139,20 @@ class TestPollRequest(unittest.TestCase):
         check_response_body(resp, status="ERROR", id=id)
 
     def test_poll_request_serial_not_lower_completed(self):
-        """Check that I can:
-            1. submit a poll request
-            2. see the "ACCEPTED" status
-            3. allow the request to timeout
-            4. move into an error state
+        """Test that a poll request to time a zone create works.
+
+        Check that I can:
+            1. Create a zone
+            2. Create a poll request to track the zone to completion
+            3. See the poll request move to the COMPLETED state
         """
-        zone = Datagen.get_random_zone()
-        resp = self.designate_client.post_zone(
-            name=zone, email="mickey@example.com", ttl=2400)
-        self.assertEquals(resp.status_code, 201)
+        # create a random zone
+        resp = self.post_random_zone()
+        zone = resp.json()['zone']['name']
+        zone_id = resp.json()['zone']['id']
+        serial = resp.json()['zone']['serial']
 
         start_time = time.time()
-        serial = resp.json()['zone']['serial']
         timeout = 60
         frequency = 1
 
@@ -165,34 +188,25 @@ class TestPollRequest(unittest.TestCase):
 
         id = resp.json()['id']
 
-        # poll until we see a "COMPLETED"
-        start = time.time()
-        while True:
-            if time.time() - start > timeout + frequency:
-                raise Exception("Timed out before completion")
-            resp = self.digaas_client.get_poll_request(id)
+        api_call = lambda: self.digaas_client.get_poll_request(id)
+        def check(resp):
             self.assertEquals(resp.status_code, 200)
             if resp.json()['status'] == "COMPLETED":
                 check_response_body(resp, status="COMPLETED", id=id)
                 self.assertGreater(resp.json()['duration'], 0)
-                break
-            else:
-                time.sleep(frequency)
+                return True
+        self.wait_for_status(api_call, check, frequency, timeout)
 
     def test_poll_request_zone_removed_completed(self):
         # create the zone
-        zone = Datagen.get_random_zone()
-        resp = self.designate_client.post_zone(
-            name=zone, email="mickey@example.com", ttl=2400)
-        self.assertEquals(resp.status_code, 201)
+        resp = self.post_random_zone()
+        zone = resp.json()['zone']['name']
         zone_id = resp.json()['zone']['id']
         serial = resp.json()['zone']['serial']
-
-        # use the thing we're testing to see if the zone gets to the nameserver?
-        # this is already tested in another function.
-        # create the poll request
         timeout = 10
         frequency = 1
+
+        # create the poll request
         start_time = time.time()
         resp = self.digaas_client.post_poll_request(
             zone       = zone,
@@ -205,19 +219,14 @@ class TestPollRequest(unittest.TestCase):
 
         id = resp.json()['id']
 
-        # poll until we see a "COMPLETED"
-        start = time.time()
-        while True:
-            if time.time() - start > timeout + frequency:
-                raise Exception("Timed out before completion")
-            resp = self.digaas_client.get_poll_request(id)
+        # poll until we see a COMPLETED
+        def check(resp):
             self.assertEquals(resp.status_code, 200)
             if resp.json()['status'] == "COMPLETED":
-                # check_response_body(resp, status="COMPLETED", id=id)
                 self.assertGreater(resp.json()['duration'], 0)
-                break
-            else:
-                time.sleep(frequency)
+                return True
+        api_call = lambda: self.digaas_client.get_poll_request(id)
+        self.wait_for_status(api_call, check, frequency, timeout)
 
         timeout = 120
         # delete the zone
@@ -231,47 +240,34 @@ class TestPollRequest(unittest.TestCase):
             nameserver = self.nameserver,
             serial     = serial,
             condition  = DigaasClient.ZONE_REMOVED,
-            start_time = start_time,
+            start_time = time.time(),
             timeout    = timeout,
             frequency  = frequency)
         self.assertEquals(resp.status_code, 202)
 
         id = resp.json()['id']
 
-        # poll until we see a "COMPLETED"
+        # poll until we see a "COMPLETED", takes a while with pdns in vagrant
         print "polling until completed: timeout = %s" % timeout
-        start = time.time()
-        while True:
-            if time.time() - start > timeout + frequency:
-                raise Exception("Timed out before completion")
-            resp = self.digaas_client.get_poll_request(id)
-            self.assertEquals(resp.status_code, 200)
-            if resp.json()['status'] == "COMPLETED":
-                self.assertGreater(resp.json()['duration'], 0)
-                break
-            else:
-                time.sleep(frequency)
+        api_call = lambda: self.digaas_client.get_poll_request(id)
+        self.wait_for_status(api_call, check, frequency, timeout)
 
     def test_poll_request_zone_removed_timeout(self):
         # create the zone
-        zone = Datagen.get_random_zone()
-        resp = self.designate_client.post_zone(
-            name=zone, email="mickey@example.com", ttl=2400)
-        self.assertEquals(resp.status_code, 201)
+        resp = self.post_random_zone()
+        zone = resp.json()['zone']['name']
         zone_id = resp.json()['zone']['id']
         serial = resp.json()['zone']['serial']
         timeout = 3
         frequency = 0.5
 
         def check_response_body(resp, status, condition, id=None):
-            """Does not check duration"""
             self.assertEquals(resp.json()['status'],     status)
             self.assertEquals(resp.json()['start_time'], start_time)
             self.assertEquals(resp.json()['serial'],     serial)
             self.assertEquals(resp.json()['condition'],  condition)
             self.assertEquals(resp.json()['zone_name'],  zone)
             self.assertEquals(resp.json()['nameserver'], self.nameserver)
-            #self.assertEquals(resp.json()['duration'],   duration)
             self.assertEquals(resp.json()['frequency'],  frequency)
             self.assertEquals(resp.json()['timeout'],    timeout)
             if id is None:
@@ -295,20 +291,16 @@ class TestPollRequest(unittest.TestCase):
         id = resp.json()['id']
 
         # poll until we see a "COMPLETED", so we know the zone is on the nameserver
-        start = time.time()
-        while True:
-            if time.time() - start > timeout + frequency:
-                raise Exception("Timed out before completion")
-            resp = self.digaas_client.get_poll_request(id)
+        api_call = lambda: self.digaas_client.get_poll_request(id)
+        def check(resp):
             self.assertEquals(resp.status_code, 200)
             if resp.json()['status'] == "COMPLETED":
                 check_response_body(
                     resp, condition=DigaasClient.SERIAL_NOT_LOWER,
                     status="COMPLETED", id=id)
                 self.assertGreater(resp.json()['duration'], 0)
-                break
-            else:
-                time.sleep(frequency)
+                return True
+        self.wait_for_status(api_call, check, interval=frequency, timeout=timeout)
 
         # Now create a poll_request to check that the zone we just created is
         # removed. This request should timeout because we never deleted the
