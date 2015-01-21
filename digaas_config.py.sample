@@ -4,3 +4,6 @@ import storage_sqlite as storage
 
 # path to your sqlite database file
 sqlite_db_file = 'digaas.db'
+
+# the timeout in seconds for raw dns queries
+dns_query_timeout = 1

@@ -1,6 +1,7 @@
 import time
 
 import gevent
+import dns.exception
 
 import digdig
 import digaas_config as config
@@ -43,12 +44,14 @@ def _handle_serial_not_lower(poll_req):
     end_time = None
     while time.time() - start < poll_req.timeout:
         try:
-            print time.time(), "querying for %s" % poll_req.zone_name
-            serial = digdig.get_serial(poll_req.zone_name, poll_req.nameserver)
+            serial = digdig.get_serial(poll_req.zone_name, poll_req.nameserver,
+                config.dns_query_timeout
+            )
             if serial is not None and serial >= poll_req.serial:
-                print "got serial: %s" % serial
                 end_time = time.time()
                 break
+        except dns.exception.Timeout as e:
+            print 'dns.query.udp timed out'
         except Exception as e:
             print e
             break
@@ -71,9 +74,14 @@ def _handle_zone_removed(poll_req):
     end_time = None
     while time.time() - start < poll_req.timeout:
         try:
-            if not digdig.zone_exists(poll_req.zone_name, poll_req.nameserver):
+            zone_found = digdig.zone_exists(poll_req.zone_name,
+                poll_req.nameserver, config.dns_query_timeout
+            )
+            if not zone_found:
                 end_time = time.time()
                 break
+        except dns.exception.Timeout as e:
+            print 'dns.query.udp timed out'
         except Exception as e:
             print e
             break
