@@ -1,1 +1,1 @@
-uwsgi --http :9090 --gevent 2 --wsgi-file app.py --callable app
+uwsgi --http :9090 --gevent 1000 --wsgi-file app.py --callable app
