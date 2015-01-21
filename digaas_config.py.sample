@@ -1,5 +1,7 @@
+# SAMPLE CONFIG FILE: copy this file to digaas_config.py
+
 # select which storage you want: either storage_redis or storage_sqlite
-import storage_sqlite as storage
+# import storage_sqlite as storage
 # import storage_redis as storage
 
 # path to your sqlite database file
