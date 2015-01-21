@@ -1,0 +1,94 @@
+
+Submit a request to poll until a zone is deleted
+
+Request
+POST /requests
+{
+    "nameserver": "192.168.33.20",
+    "zone_name": "example.com.",
+    "start_time": 1421867419,
+    "serial": 1421873937,
+    "timeout": 10,
+    "frequency": 1,
+    "condition": "zone_removed"
+}
+
+Response
+{
+    "status": "ACCEPTED",
+    "start_time": 1421867419,
+    "id": "c55986ca-d728-46ae-89ce-545516f29a84",
+    "frequency": 1,
+    "timeout": 10,
+    "duration": null,
+    "zone_name": "hello.com.",
+    "nameserver": "192.168.33.20",
+    "serial": 1421867419,
+    "condition": "zone_removed"
+}
+
+Submit a request to poll until the serial is greater-or-equal
+
+Request
+POST /requests
+{
+    "nameserver": "192.168.33.20",
+    "zone_name": "example.com.",
+    "start_time": 1421874033,
+    "serial": 1421873937,
+    "timeout": 10,
+    "frequency": 1,
+    "condition": "serial_not_lower"
+}
+
+Response
+{
+    "status": "ACCEPTED",
+    "start_time": 1421874033,
+    "id": "da3a3f1f-c628-4b7f-9393-9d8a3b2bfbfd",
+    "frequency": 1,
+    "timeout": 10,
+    "duration": null,
+    "zone_name": "example.com.",
+    "nameserver": "192.168.33.20",
+    "serial": 1421873937,
+    "condition": "serial_not_lower"
+}
+
+Get a poll request (completed)
+
+Request
+GET /requests/da3a3f1f-c628-4b7f-9393-9d8a3b2bfbfd
+
+Response
+{
+    "status": "COMPLETED",
+    "start_time": 1421874033,
+    "id": "da3a3f1f-c628-4b7f-9393-9d8a3b2bfbfd",
+    "frequency": 1,
+    "timeout": 10,
+    "duration": 4.17862606048583984,
+    "zone_name": "example.com.",
+    "nameserver": "192.168.33.20",
+    "serial": 1421873937,
+    "condition": "serial_not_lower"
+}
+
+Get a poll request (error)
+
+Request
+GET /requests/1f931a2b-2e46-4dc2-95d9-d7ad5722040c
+
+Response
+{
+    "status": "ERROR",
+    "start_time": 1421873792,
+    "id": "1f931a2b-2e46-4dc2-95d9-d7ad5722040c",
+    "frequency": 1,
+    "timeout": 10,
+    "duration": null,
+    "zone_name": "hello.com.",
+    "nameserver": "192.168.33.20",
+    "serial": 1421873792,
+    "condition": "serial_not_lower"
+}
