@@ -1,3 +1,15 @@
+"""
+The main module for the digaas service. This contains routing and top-level
+request handlers. To start the service on port 9090, run with uwsgi:
+
+    uwsgi --http :9090 --gevent <cores> --wsgi-file <this_module> --callable app
+
+Where
+    <cores> is the number of cores (threads) to use?
+    <this_module> is this python module, e.g. "app.py"
+    the callable is a variable in this file that knows how to handle requests:
+        app = falcon.API()
+"""
 import json
 
 import falcon
@@ -77,7 +89,6 @@ class Resource(object):
         resp.body = json.dumps(poll_req.to_dict())
 
 # the uWSGI callable
-# Run `uwsgi --wsgi-file thismodule.py --callable app`
 app = falcon.API()
 
 resource_collection = ResourceCollection()

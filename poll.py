@@ -68,19 +68,15 @@ def _handle_zone_removed(poll_req):
     end_time = None
     while time.time() - start < poll_req.timeout:
         try:
-            print time.time(), "querying for %s" % poll_req.zone_name
-            serial = digdig.get_serial(poll_req.zone_name, poll_req.nameserver)
-            if serial is None:
+            if not digdig.zone_exists(poll_req.zone_name, poll_req.nameserver):
                 end_time = time.time()
                 break
         except Exception as e:
             print e
             break
-
         # ensure we yield to other greenlets
         gevent.sleep(seconds=poll_req.frequency)
 
-    print "zone_removed loop done"
     if end_time is not None:
         poll_req.status = Status.COMPLETED
         poll_req.duration = end_time - poll_req.start_time
