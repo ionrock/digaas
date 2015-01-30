@@ -2,6 +2,22 @@ Overview
 ========
 Digaas is "Dig as a Service". It is a simple REST API backed by either sqlite or redis that accepts requests to poll for a zone on a DNS nameserver. Digaas was created to offload this polling functionality to a separate service during a performance test of OpenStack Designate. After the performance test is over, the propagation times for every created/updated/delete zone from Designate's API down the stack to the backend nameserver can be plotted and analyzed.
 
+### Setup
+
+    sudo apt-get install build-essential python-dev python-pip
+    pip install -U pip
+    hash -r
+    pip install uwsgi Cython falcon gevent dnspython
+
+For redis storage, you'll need:
+
+    pip install redis
+
+Then start the server with:
+
+    bin/digaas.sh
+
+
 ### Example
 
 **Request**: The following is a a request to poll the nameserver `192.168.33.20` for the zone `hello.com.`. The service will dig the nameserver every 1.2 seconds until the nameserver returns a serial number which is not lower than the provided serial in the request (i.e. a serial greater or equal). Otherwise, the request will timeout after 7.3 seconds. The `start_time` is used when computing the time it took for that zone to show up on the nameserver.
