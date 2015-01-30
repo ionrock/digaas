@@ -7,29 +7,16 @@ import digdig
 import digaas_config as config
 from digaas_config import storage
 
-
-class Status:
-    ACCEPTED  = "ACCEPTED"
-    ERROR     = "ERROR"
-    COMPLETED = "COMPLETED"
-
-
-class Conditions:
-    """These are used to determine when the poll request has succeeded"""
-    SERIAL_NOT_LOWER = "serial_not_lower"
-    ZONE_REMOVED     = "zone_removed"
-
-    ALL = (SERIAL_NOT_LOWER, ZONE_REMOVED)
+from consts import Status, Condition
 
 
 def receive(poll_req):
     poll_req.status = Status.ACCEPTED
     storage.create_poll_request(poll_req)
-    if poll_req.condition == Conditions.SERIAL_NOT_LOWER:
-        thing = gevent.spawn(_handle_serial_not_lower, poll_req)
-    elif poll_req.condition == Conditions.ZONE_REMOVED:
-        thing = gevent.spawn(_handle_zone_removed, poll_req)
-    # what to do with thing?
+    if poll_req.condition == Condition.SERIAL_NOT_LOWER:
+        gevent.spawn(_handle_serial_not_lower, poll_req)
+    elif poll_req.condition == Condition.ZONE_REMOVED:
+        gevent.spawn(_handle_zone_removed, poll_req)
 
 
 def _handle_serial_not_lower(poll_req):
