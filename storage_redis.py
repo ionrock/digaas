@@ -30,10 +30,6 @@ def fmt_value(*data):
             return "{0:.17g}".format(thing)
         return thing
     return " ".join(str(cvt(x)) for x in data)
-    #data = {k: cvt(v) for k, v in data.iteritems()}
-    #return ("{status} {zone_name} {serial} {nameserver} {start_time} "
-    #        "{duration} {condition} {timeout} {frequency}"
-    #        .format(**data))
 
 def cvt(thing, type=None):
     """Convert "None" to None. Convert thing to the type, if provided"""
@@ -46,7 +42,8 @@ def cvt(thing, type=None):
 def fmt_poll_request_value(poll_req):
     return fmt_value(
         poll_req.status,
-        poll_req.zone_name,
+        poll_req.query_name,
+        poll_req.rdatatype,
         poll_req.serial,
         poll_req.nameserver,
         poll_req.start_time,
@@ -64,14 +61,15 @@ def parse_poll_request_value(val):
     parts = val.split(' ')
     return {
         "status":     cvt(parts[0]),
-        "zone_name":  cvt(parts[1]),
-        "serial":     cvt(parts[2], type=int),
-        "nameserver": cvt(parts[3]),
-        "start_time": cvt(parts[4], type=float),
-        "duration":   cvt(parts[5], type=float),
-        "condition":  cvt(parts[6]),
-        "timeout":    cvt(parts[7], type=int),
-        "frequency":  cvt(parts[8], type=float),
+        "query_name": cvt(parts[1]),
+        "rdatatype":  cvt(parts[2]),
+        "serial":     cvt(parts[3], type=int),
+        "nameserver": cvt(parts[4]),
+        "start_time": cvt(parts[5], type=float),
+        "duration":   cvt(parts[6], type=float),
+        "condition":  cvt(parts[7]),
+        "timeout":    cvt(parts[8], type=int),
+        "frequency":  cvt(parts[9], type=float),
     }
 
 def fmt_stats_request_value(stats_req):

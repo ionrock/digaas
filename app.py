@@ -41,12 +41,11 @@ def _parse_json(req, resp):
 
 
 class PollRequestCollection(object):
-    route = '/requests'
+    route = '/poll_requests'
 
     def on_post(self, req, resp):
-        """Handle POST /requests"""
+        """Handle POST /poll_requests"""
         resp.content_type = 'application/json'
-        # parse request
         data = _parse_json(req, resp)
         if data is None:
             return
@@ -73,10 +72,10 @@ class PollRequestCollection(object):
 
 
 class PollRequestResource(object):
-    route = "/requests/{id}"
+    route = "/poll_requests/{id}"
 
     def on_get(self, req, resp, id):
-        """Handle GET /requests/{id}"""
+        """Handle GET /poll_requests/{id}"""
         resp.content_type = 'application/json'
         try:
             poll_req = storage.get_poll_request(id)
@@ -173,9 +172,10 @@ class ImageResource(object):
         try:
             with open(filename) as f:
                 resp.body = f.read()
-            resp.status = HTTP_200
-        except:
+            resp.status = falcon.HTTP_200
+        except Exception as e:
             resp.status = falcon.HTTP_500
+            resp.body = make_error_body(str(e))
 
 
 # the uWSGI callable
