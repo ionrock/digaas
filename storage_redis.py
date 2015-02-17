@@ -94,19 +94,21 @@ def create_poll_request(poll_req):
     return r.set(poll_req.id, fmt_poll_request_value(poll_req))
 
 def update_poll_request(poll_req):
-    # add the serial + duration to a sorted set for fast querying to generate
+    # add the start_time + duration to a sorted set for fast querying to generate
     # the plot (I'm assuming this only gets called once, when the status
     # changes from ACCEPTED to COMPLETE/ERROR)
     #
     # This uses one sorted set for zone creates/updates and another for zone
-    # deletes. This will store any "None" values for the duration.
+    # deletes. The sets are sorted by the start_time passed to digaas by the
+    # user.
     r = get_redis_client()
-    if poll_req.condition == Condition.SERIAL_NOT_LOWER:
+    if poll_req.condition == Condition.SERIAL_NOT_LOWER \
+            or poll_req.condition.startswith(Condition.DATA_EQUALS):
         r.zadd(SERIAL_NOT_LOWER_SET_NAME, poll_req.start_time,
-            "update {0} {1}".format(poll_req.serial, poll_req.duration))
+            "update {0} {1}".format(poll_req.start_time, poll_req.duration))
     elif poll_req.condition == Condition.ZONE_REMOVED:
         r.zadd(ZONE_REMOVED_SET_NAME, poll_req.start_time,
-            "remove {0} {1}".format(poll_req.serial, poll_req.duration))
+            "remove {0} {1}".format(poll_req.start_time, poll_req.duration))
     return create_poll_request(poll_req)
 
 def get_poll_request(id):

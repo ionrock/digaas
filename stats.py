@@ -1,6 +1,7 @@
 import subprocess
 import textwrap
 import time
+import traceback
 import uuid
 
 import gevent
@@ -44,18 +45,48 @@ def plot_data(data, filename):
 
     # define our gnuplot file. This tells gnuplot which datafiles to use, what
     # file format to spit out, the output filename, and colors/style/formatting
-    gnuplot_script = (
-        "set term png size 1500,1000\n"
-        "set output '{output_file}'\n"
-        "set key below box\n"
-        "set xtics rotate\n"
-        'plot "{updates_file}" with points pointtype 5 linecolor rgb "blue",'
-        '     "{removes_file}" with points pointtype 5 linecolor rgb "red",'
-        '     "{errors_file}" with points pointtype 5 linecolor rgb "black"\n'
-    ).format(updates_file=updates_data_file,
-             removes_file=removes_data_file,
-             errors_file=errors_data_file,
-             output_file=filename)
+    print "formatting gnuplot script"
+    gnuplot_script = textwrap.dedent(
+        """
+        set term png size 1500,1000
+        set output '{output_file}'
+        set key outside below box
+        set xtics rotate
+        set format x "%0.1f"
+        set xlabel "Timestamp of API request"
+        set ylabel "Propagation time (seconds)"
+        set title "API-to-nameserver propagation times"
+
+        file_empty(file) = system("awk '{{x++}}END{{ print x}}' '".file."'") == 0
+
+        # compute
+        if (file_empty('{updates_file}')) {{
+            print "WARN: file '{updates_file}' is empty."
+            UPDATE_mean = -1
+        }} else {{
+            stats '{updates_file}' using 2 prefix "UPDATE"
+        }}
+
+        if (file_empty('{removes_file}')) {{
+            print "WARN: file '{removes_file}' is empty."
+            DELETE_mean = -1
+        }} else {{
+            stats '{removes_file}' using 2 prefix "DELETE"
+        }}
+
+        plot \\
+            "{updates_file}" title "Creates/Updates" with points pointtype 5 linecolor rgb "blue", \\
+            "{removes_file}" title "Deletes" with points pointtype 5 linecolor rgb "red", \\
+            "{errors_file}" title "Errors" with points pointtype 5 linecolor rgb "black", \\
+            UPDATE_mean title sprintf("Avg create/update time (%0.2f s)", UPDATE_mean) linecolor rgb "blue", \\
+            DELETE_mean title sprintf("Avg delete time (%0.2f s)", DELETE_mean) linecolor rgb "red"
+        """
+    ).format(
+        updates_file=updates_data_file,
+        removes_file=removes_data_file,
+        errors_file=errors_data_file,
+        output_file=filename)
+
     with open(gnuplot_file, 'w') as f:
         f.write(gnuplot_script)
 
@@ -64,7 +95,6 @@ def plot_data(data, filename):
          open(removes_data_file, 'w') as removes_file, \
          open(errors_data_file, 'w') as errors_file:
 
-        print data
         n_updates, n_removes, n_errors = 0, 0, 0
         for item in data:
             operation, serial, duration = item.split()
@@ -114,8 +144,10 @@ def _handle_stats_request(stats_req):
         storage.create_image_filename(stats_req.image_id, filename)
         stats_req.status = Status.COMPLETED
     except GnuplotException as e:
+        print traceback.format_exc()
         stats_req.status = Status.ERROR
     except Exception as e:
+        print traceback.format_exc()
         stats_req.status = Status.INTERNAL_ERROR
 
     storage.update_stats_request(stats_req)
