@@ -1,22 +1,57 @@
 Overview
 ========
-Digaas is "Dig as a Service". It is a simple REST API backed by either sqlite or redis that accepts requests to poll for a zone on a DNS nameserver. Digaas was created to offload this polling functionality to a separate service during a performance test of OpenStack Designate. After the performance test is over, the propagation times for every created/updated/delete zone from Designate's API down the stack to the backend nameserver can be plotted and analyzed.
+Digaas is "Dig as a Service". It is a tool designed to time the propagation of changes to a DNS nameserver. It does this by polling the nameserver waiting for a particular condition to be satisfied, at which point it stores the time taken to see that request.
+
+Digaas was created to offload this polling functionality to a separate service during a performance test of OpenStack Designate. After the performance test is over, the propagation times for every change from Designate's API to the backend nameserver can be plotted and analyzed.
+
+See documentation at: http://docs.digaas.apiary.io/
+
+### More detail
+
+The workflow looks like:
+
+1. Create a domain/record somewhere (e.g. in OpenStack Designate)
+2. Submit a request to Digaas to poll a nameserver for the change you just made
+3. (Repeat from the top as many times as you like)
+4. Ask Digaas to plot all the changes you just made
+
+Currently, Digaas understands the following changes:
+
+- zone creates or updates by looking for a serial number increase for the zone
+- zone deletes by looking for an empty response from the nameserver
+- creates or updates of NS and A records by looking for a spcific value in the records data/address/target
+- record deletes by looking for an empty response from the nameserver
+
 
 ### Setup
 
-    sudo apt-get install build-essential python-dev python-pip
+See `scripts/setup.sh` for a setup script.
+
+On Ubuntu:
+
+    sudo apt-get install git python-dev python-pip python-virtualenv ntp gnuplot
     pip install -U pip
     hash -r
-    pip install uwsgi Cython falcon gevent dnspython
+    pip install uwsgi Cython falcon gevent dnspython redis
 
-For redis storage, you'll need:
+Create `digaas_config.py`. In particular, you'll need to specify the location of your Redis datastore.
 
-    pip install redis
+    cp digaas_config.py.sample digaas_config.py
+    vim digaas_config.py
+
+Important: Because Digaas accepts timestamps generated on other machines, you *need* to synchronize to network time or your plot will look really off.
+
+    sudo apt-get install ntp
+
+To force a synchronization:
+
+    service ntp stop
+    ntpd -gq
+    service ntp start
 
 Then start the server with:
 
     bin/digaas.sh
-
 
 ### Example
 
@@ -24,8 +59,8 @@ Then start the server with:
 
     POST /requests
     {
-        "nameserver": "192.168.33.20", 
-        "zone_name": "hello.com.", 
+        "nameserver": "192.168.33.20",
+        "zone_name": "hello.com.",
         "serial": 1418336470,
         "start_time": 1421867419,
         "timeout": 7.3,
@@ -48,6 +83,8 @@ Then start the server with:
         "condition": "serial_not_lower"
     }
 
+See documentation at: http://docs.digaas.apiary.io/
+
 ### Implementation overview
 
 Digaas is all Python. It uses falcon for the API and uwsgi in `--gevent` mode for the http server. When a new poll request is made through the API, a new entry is created in the database (marked `ACCEPTED`), a greenlet is spawned (through gevent) to work on the request asyncronously, and a 202 response is returned immediately. The worker greenlet will poll a DNS nameserver until success or until timeout, at which point the relevant status and the duration of that poll request are updated in the database.
@@ -60,3 +97,6 @@ Code:
 - *storage_*\*.py* - contains functions for updating the database
 - *digaas_config.py* - contains various config options
 - *digdig.py* - contains functions that do dns querying
+- *stats.py* - contains code to plot durations over time (using gnuplot)
+
+Right now, `test.py` requires a deployment of OpenStack Designate to effect changes to the nameserver.
