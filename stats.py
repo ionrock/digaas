@@ -1,3 +1,4 @@
+import os
 import subprocess
 import textwrap
 import time
@@ -11,6 +12,17 @@ from digaas_config import storage
 from consts import Status
 
 
+# this module creates various files while generating a plot.
+# we want to put these in a subdirectory.
+def ensure_dir_exists(d):
+    if not os.path.exists(d):
+        os.mkdir(d)
+# put the stats dir in the same dir as this module
+STATS_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'stats')
+ensure_dir_exists(STATS_DIR)
+print "USING STATS_DIR = %s" % STATS_DIR
+
+
 class GnuplotException(Exception):
     def __init__(self, msg):
         super(GnuplotException, self).__init__(msg)
@@ -22,14 +34,15 @@ def receive(stats_req):
     thing = gevent.spawn(_handle_stats_request, stats_req)
 
 def construct_filename(start, end):
-    return "start{0}-end{1}-create{2}.png".format(
+    filename = "start{0}-end{1}-create{2}.png".format(
         int(start * 1000), int(end * 1000), int(time.time() * 1000))
+    return os.path.join(STATS_DIR, filename)
 
 def plot_data(data, filename):
     # in order to color data points easily, I split up the data files
     # according to three categories:
-    #   1. updates - times takes for serial number updates
-    #   2. removes - times taken on removals of zones/records
+    #   1. updates - times for serial number updates
+    #   2. removes - times for removals of zones/records
     #   3. errors - we enter one datapoint for each poll request that errored out
     # Datapoints contained in the same category/file will be colored the same
     updates_data_file = filename.rstrip('.png') + '.updates.dat'
@@ -141,7 +154,8 @@ def _handle_stats_request(stats_req):
     try:
         plot_data(data, filename)
         stats_req.image_id = str(uuid.uuid4())
-        storage.create_image_filename(stats_req.image_id, filename)
+        # storage.create_image_filename(stats_req.image_id, filename)
+        storage.create_image_bytes(stats_req.image_id, open(filename, 'rb').read())
         stats_req.status = Status.COMPLETED
     except GnuplotException as e:
         print traceback.format_exc()

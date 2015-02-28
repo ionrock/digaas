@@ -122,13 +122,14 @@ def get_poll_request(id):
     if val is not None:
         return model.PollRequest(id=id, **parse_poll_request_value(val))
 
-def create_image_filename(id, filename):
+def create_image_bytes(id, data):
     r = get_redis_client()
-    return r.set(id, filename)
+    return r.set(id, data)
 
-def get_image_filename(id):
+def get_image_bytes(id):
     r = get_redis_client()
-    return r.get(id)
+    val = r.get(id)
+    return cvt(val)
 
 def select_time_range(lo, hi):
     """Select a bunch of strings which are specifically ordered by start_time.

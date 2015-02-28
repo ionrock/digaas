@@ -142,36 +142,18 @@ class StatsResource(object):
 class ImageResource(object):
     route = '/images/{id}'
 
-    def _get_mime_type(self, filename):
-        if filename is None:
-            return None
-
-        # note: chrome will display a .jpg with either image/png or image/jpeg
-        #       but it will fail if given image/svg+xml or image/tiff.
-        if filename.endswith('.png'):
-            return 'image/png'
-        elif filename.endswith('.svg'):
-            return 'image/svg+xml'
-        elif filename.endswith('.jpg') or filename.endswith('.jpeg'):
-            return 'image/jpeg'
-
     def on_get(self, req, resp, id):
         """Handle GET /images/{id}"""
 
-        filename = storage.get_image_filename(id)
-
-        if filename is None:
+        image_data = storage.get_image_bytes(id)
+        if image_data is None:
             resp.status = falcon.HTTP_404
             return
-        elif not os.path.exists(filename):
-            resp.status = falcon.HTTP_500
-            return
 
-        resp.content_type = self._get_mime_type(filename) or 'image/jpeg'
+        resp.content_type = 'image/png'
 
         try:
-            with open(filename) as f:
-                resp.body = f.read()
+            resp.body = image_data
             resp.status = falcon.HTTP_200
         except Exception as e:
             resp.status = falcon.HTTP_500
