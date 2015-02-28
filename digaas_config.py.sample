@@ -2,7 +2,11 @@
 
 # select which storage you want: either storage_redis or storage_sqlite
 # import storage_sqlite as storage
-# import storage_redis as storage
+import storage_redis as storage
+
+redis_host = None
+redis_port = None
+redis_password = None
 
 # path to your sqlite database file
 sqlite_db_file = 'digaas.db'

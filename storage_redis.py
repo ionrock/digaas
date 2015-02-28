@@ -1,5 +1,6 @@
 import redis
 
+import digaas_config as CONFIG
 import model
 from consts import Condition
 
@@ -12,7 +13,11 @@ REDIS_CLIENT = None
 def get_redis_client():
     global REDIS_CLIENT
     if REDIS_CLIENT is None:
-        REDIS_CLIENT = redis.StrictRedis()
+        REDIS_CLIENT = redis.StrictRedis(
+            host=CONFIG.redis_host,
+            port=CONFIG.redis_port,
+            password=CONFIG.redis_password,
+        )
         REDIS_CLIENT.ping()  # fail fast; raises an exception if bad connection
     return REDIS_CLIENT
 
