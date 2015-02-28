@@ -1,15 +1,11 @@
 # SAMPLE CONFIG FILE: copy this file to digaas_config.py
 
-# select which storage you want: either storage_redis or storage_sqlite
-# import storage_sqlite as storage
+# select the storage module (only option is storage_redis)
 import storage_redis as storage
 
 redis_host = None
 redis_port = None
 redis_password = None
 
-# path to your sqlite database file
-sqlite_db_file = 'digaas.db'
-
 # the timeout in seconds for raw dns queries
-dns_query_timeout = 1
+dns_query_timeout = 0.5

@@ -1,2 +1,6 @@
 *.pyc
 digaas_config.py
+*.log
+*.png
+*.dat
+*.gnu
