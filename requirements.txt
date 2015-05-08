@@ -1,0 +1,6 @@
+uwsgi
+Cython
+falcon
+gevent
+dnspython
+redis
