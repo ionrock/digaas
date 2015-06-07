@@ -22,11 +22,8 @@ _configure-digaas:
 	python setup.py install
 
 _configure-bind:
-	# disable bind apparmor restrictions
-	mkdir -p /etc/apparmor.d/disable
-	touch /etc/apparmor.d/disable/usr.sbin.named
-	service apparmor restart
-
+	# disable bind apparmor restrictions if we find them
+	# ./scripts/disable-bind-apparmor.sh
 	mkdir -p $(ZONE_FILE_DIR)
 	mkdir -p $(BIND_LOG_DIR)
 	cp $(BIND_CONF) /etc/bind/named.conf.options
@@ -35,7 +32,7 @@ _configure-bind:
 	service bind9 restart
 
 restart-digaas:
-	service digaas-server stop
+	service digaas-server stop || true
 	sleep 2  # `service digaas-server restart` stops and starts too quickly...
 	service digaas-server start
 
