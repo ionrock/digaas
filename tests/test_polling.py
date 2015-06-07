@@ -169,3 +169,88 @@ class TestPolling(unittest.TestCase):
         self.assertEqual(resp.json()['rdatatype'], None)
         self.assertEqual(resp.json()['status'], 'ERROR')
         self.assertEqual(resp.json()['id'], id)
+
+    def test_poll_for_specific_record_data(self):
+        # add a random zone to the nameserver with a known serial
+        zone_name = datagen.random_zone_name()
+        serial = 123456
+        ip = datagen.random_ip()
+        tools.add_new_zone_to_bind(zone_name, serial=serial, ip=ip)
+        self.assertTrue(dig.zone_exists(zone_name, NAMESERVER))
+        self.assertEqual(dig.get_serial(zone_name, NAMESERVER), serial)
+        self.assertEqual(dig.get_record_data(zone_name, NAMESERVER, "A"), ip)
+
+        new_ip = datagen.random_ip()
+        assert new_ip != ip
+        # ask digaas to poll for the until it sees the ip address
+        resp = self.client.post_poll_request(
+            query_name = zone_name,
+            nameserver = NAMESERVER,
+            serial = 0,
+            condition = 'data=%s' % new_ip,
+            rdatatype = 'A',
+            start_time = time.time(),
+            timeout = 15,
+            frequency = 1)
+        self.assertEqual(resp.status_code, 202)
+        id = resp.json()['id']
+
+        # wait two seconds before we update the ip address for the zone's A record
+        min_duration = 2
+        time.sleep(min_duration)
+        tools.update_zone(zone_name, serial, new_ip)
+
+        # wait for the digaas to finish polling
+        self.client.wait_for_completed_poll_request(id)
+        resp = self.client.get_poll_request(id)
+
+        # check the entire response body
+        self.assertGreater(resp.json()['duration'], min_duration)
+        self.assertEqual(resp.json()['query_name'], zone_name)
+        self.assertEqual(resp.json()['nameserver'], NAMESERVER)
+        self.assertEqual(resp.json()['frequency'], 1)
+        self.assertEqual(resp.json()['timeout'], 15)
+        self.assertEqual(resp.json()['condition'], 'data=%s' % new_ip)
+        self.assertEqual(resp.json()['rdatatype'], "A")
+        self.assertEqual(resp.json()['status'], 'COMPLETED')
+        self.assertEqual(resp.json()['id'], id)
+
+    def test_timeout_on_polling_for_specific_record_data(self):
+        # add a random zone to the nameserver with a known serial
+        zone_name = datagen.random_zone_name()
+        serial = 123456
+        ip = datagen.random_ip()
+        tools.add_new_zone_to_bind(zone_name, serial=serial, ip=ip)
+        self.assertTrue(dig.zone_exists(zone_name, NAMESERVER))
+        self.assertEqual(dig.get_serial(zone_name, NAMESERVER), serial)
+        self.assertEqual(dig.get_record_data(zone_name, NAMESERVER, "A"), ip)
+
+        new_ip = datagen.random_ip()
+        assert new_ip != ip
+        # ask digaas to poll for the until it sees a new ip address, which will never happen
+        resp = self.client.post_poll_request(
+            query_name = zone_name,
+            nameserver = NAMESERVER,
+            serial = 0,
+            condition = 'data=%s' % new_ip,
+            rdatatype = 'A',
+            start_time = time.time(),
+            timeout = 4,
+            frequency = 1)
+        self.assertEqual(resp.status_code, 202)
+        id = resp.json()['id']
+
+        # wait for the digaas to timeout
+        self.client.wait_for_errored_poll_request(id)
+        resp = self.client.get_poll_request(id)
+
+        # check the entire response body
+        self.assertEqual(resp.json()['duration'], None)
+        self.assertEqual(resp.json()['query_name'], zone_name)
+        self.assertEqual(resp.json()['nameserver'], NAMESERVER)
+        self.assertEqual(resp.json()['frequency'], 1)
+        self.assertEqual(resp.json()['timeout'], 4)
+        self.assertEqual(resp.json()['condition'], 'data=%s' % new_ip)
+        self.assertEqual(resp.json()['rdatatype'], "A")
+        self.assertEqual(resp.json()['status'], 'ERROR')
+        self.assertEqual(resp.json()['id'], id)

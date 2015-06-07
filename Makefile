@@ -4,6 +4,7 @@ BIND_LOG_DIR = $(shell cat $(BIND_CONF) | grep log | grep file | sed 's/.*file "
 
 help:
 	@echo "setup-dev - install a local development environment with redis and bind"
+	@echo "restart-digaas - restart the digaas server"
 
 setup-dev: _install-dev-deps _configure-bind _configure-digaas restart-digaas check-digaas
 
@@ -15,6 +16,7 @@ _configure-digaas:
 	cp digaas/digaas_config.py.sample digaas/digaas_config.py
 	sed -i -e "s/redis_host = None/redis_host = '127.0.0.1'/" digaas/digaas_config.py
 	sed -i -e "s/redis_port = None/redis_port = 6379/" digaas/digaas_config.py
+	python setup.py install
 
 _configure-bind:
 	# disable bind apparmor restrictions
@@ -30,7 +32,6 @@ _configure-bind:
 	service bind9 restart
 
 restart-digaas:
-	python setup.py install
 	service digaas-server stop
 	sleep 2  # apparently service restart stops and starts too quickly
 	service digaas-server restart
