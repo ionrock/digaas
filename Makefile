@@ -9,7 +9,10 @@ help:
 setup-dev: _install-dev-deps _configure-bind _configure-digaas restart-digaas check-digaas
 
 _install-dev-deps:
-	apt-get install python-pip python-dev bind9 redis-server
+	apt-get update && apt-get -y install python-pip python-dev bind9 redis-server ntp gnuplot
+
+_install-deps:
+	apt-get update && apt-get -y install python-pip python-dev ntp gnuplot
 
 _configure-digaas:
 	# write out digaas_config.py
@@ -33,8 +36,8 @@ _configure-bind:
 
 restart-digaas:
 	service digaas-server stop
-	sleep 2  # apparently service restart stops and starts too quickly
-	service digaas-server restart
+	sleep 2  # `service digaas-server restart` stops and starts too quickly...
+	service digaas-server start
 
 check-digaas:
 	# grab the port
