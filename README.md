@@ -1,5 +1,8 @@
+[![Build Status](https://travis-ci.org/pglass/digaas.svg)](https://travis-ci.org/pglass/digaas)
+
 Overview
 ========
+
 Digaas is "Dig as a Service". It is a tool designed to time the propagation of changes to a DNS nameserver. It does this by polling the nameserver waiting for a particular condition to be satisfied, at which point it stores the time taken to see that request.
 
 Digaas was created to offload this polling functionality to a separate service during a performance test of OpenStack Designate. After the performance test is over, the propagation times for every change from Designate's API to the backend nameserver can be plotted and analyzed.
@@ -67,7 +70,7 @@ To force a synchronization:
 
 Then start the server with:
 
-    service
+    service digaas-server start
 
 ### Tests
 
