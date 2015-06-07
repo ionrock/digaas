@@ -9,7 +9,7 @@ help:
 setup-dev: _install-dev-deps _configure-bind _configure-digaas restart-digaas check-digaas
 
 _install-dev-deps:
-	apt-get install python-dev bind9 redis-server
+	apt-get install python-pip python-dev bind9 redis-server
 
 _configure-digaas:
 	# write out digaas_config.py
