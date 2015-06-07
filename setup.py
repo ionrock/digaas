@@ -31,7 +31,7 @@ setup(
     cmdclass={'build_py': my_build_py},
     name='digaas',
     version='0.0.1',
-    py_modules=['digaas'],
+    packages=['digaas'],
     install_requires=[
         'dnspython',
         'gevent',
