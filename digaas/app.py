@@ -15,11 +15,11 @@ import os
 
 import falcon
 
-import digdig
-import model
-import poll
-import stats
-from digaas_config import storage
+from digaas import digdig
+from digaas import model
+from digaas import poll
+from digaas import stats
+from digaas.digaas_config import storage
 
 
 def make_error_body(message):
@@ -38,7 +38,6 @@ def _parse_json(req, resp):
         resp.status = falcon.HTTP_400
         resp.body = make_error_body(err_msg)
         return
-
 
 class PollRequestCollection(object):
     route = '/poll_requests'
@@ -172,3 +171,11 @@ add_resource(PollRequestResource)
 add_resource(StatsCollection)
 add_resource(StatsResource)
 add_resource(ImageResource)
+
+def catch_all(req, resp):
+    resp.status = falcon.HTTP_200
+    resp.body = json.dumps({
+        "service": "digaas",
+        "version": "0.0.1",
+    })
+app.add_sink(catch_all, '/')

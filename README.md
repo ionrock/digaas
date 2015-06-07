@@ -8,9 +8,9 @@ See documentation at: http://docs.digaas.apiary.io/
 
 ### More detail
 
-The workflow looks like:
+The flow looks like:
 
-1. Create a domain/record somewhere (e.g. in OpenStack Designate)
+1. Create a domain/record on a nameserver
 2. Submit a request to Digaas to poll a nameserver for the change you just made
 3. (Repeat from the top as many times as you like)
 4. Ask Digaas to plot all the changes you just made
@@ -19,27 +19,43 @@ Currently, Digaas understands the following changes:
 
 - zone creates or updates by looking for a serial number increase for the zone
 - zone deletes by looking for an empty response from the nameserver
-- creates or updates of NS and A records by looking for a spcific value in the records data/address/target
+- creates or updates of NS and A records by looking for a spcific value in the records data/address/target field
 - record deletes by looking for an empty response from the nameserver
 
 
 ### Setup
 
-See `scripts/setup.sh` for a setup script.
+Digaas assumes you're working with disposable vms and doesn't entirely work with virtualenvs. The `setup.py` script installs an init script in /etc which currently runs `digaas/app.py` from the directory where `setup.py` was invoked.
 
-On Ubuntu:
+##### Dev environment
 
-    sudo apt-get install git python-dev python-pip python-virtualenv ntp gnuplot
-    pip install -U pip
-    hash -r
-    pip install uwsgi Cython falcon gevent dnspython redis
+The Makefile will install a local development environment with redis and bind9.
+
+    make setup-dev
+
+This will:
+
+- install all of the apt dependencies
+- configure bind's `named.conf.options` to use `/var/cache/bind` for zone files and to log at `/var/log/bind/bind.log`.
+- write out `digaas/digaas_config.py` to use the local install of redis
+
+`setup.py` will install the pip dependencies as well as an init script. Then you can:
+
+    service digaas-server stop
+    service digaas-server start
+
+(there's currently an issue with `service digaas-server restart`)
+
+##### Not a dev environment
+
+TODO: refactor makefile a bit to easily install
 
 Create `digaas_config.py`. In particular, you'll need to specify the location of your Redis datastore.
 
     cp digaas_config.py.sample digaas_config.py
     vim digaas_config.py
 
-Important: Because Digaas accepts timestamps generated on other machines, you *need* to synchronize to network time or your plot will look really off.
+Important: Because Digaas accepts timestamps generated on other machines, you *need* to synchronize to network time to have approximately correct time diffs.
 
     sudo apt-get install ntp
 
@@ -51,7 +67,15 @@ To force a synchronization:
 
 Then start the server with:
 
-    bin/digaas.sh
+    service
+
+### Tests
+
+The tests currently rely on a local install of bind that can be administered with `rndc`. The tests will write out zone files and use `rndc` to add/reload/remove those zones from bind.
+
+To run the tests:
+
+    python -m unittest discover -v tests/
 
 ### Example
 

@@ -1,6 +1,6 @@
-uwsgi
-Cython
-falcon
-gevent
-dnspython
-redis
+uwsgi==2.0.10
+Cython==0.22
+falcon==0.3.0
+gevent==1.0.2
+dnspython==1.12.0
+redis==2.10.3
