@@ -1,0 +1,21 @@
+sudo: required
+language: python
+python:
+  - "2.7"
+#  - "pypy"
+before_install:
+  - "sudo make setup-dev"
+  - "sudo service redis-server stop || true"
+  - "sudo service redis-server start"
+install:
+  - "sudo python setup.py install"
+  - "sudo pip install -r test-requirements.txt"
+  - "sudo pip install nose"
+# command to run tests, e.g. python setup.py test
+script:
+  - "sudo nosetests -sv tests/"
+after_failure:
+  - "sudo tail -n 500 /var/log/syslog"
+  - "sudo cat /var/log/bind/bing.log"
+notifications:
+  email: false
