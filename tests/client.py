@@ -21,6 +21,12 @@ class DigaasClient(object):
     def _poll_request_url(self, id):
         return self._poll_requests_url() + '/' + str(id)
 
+    def _stats_requests_url(self):
+        return self.endpoint + '/stats'
+
+    def _stats_request_url(self, id):
+        return self._stats_requests_url() + '/' + id
+
     def get_version(self):
         return requests.get(self.endpoint)
 
@@ -42,6 +48,28 @@ class DigaasClient(object):
 
     def get_poll_request(self, id):
         return requests.get(self._poll_request_url(id))
+
+    def post_stats_request(self, start, end):
+        return requests.post(
+            self._stats_requests_url(),
+            data=json.dumps({
+                'start_time': start,
+                'end_time': end,
+            }))
+
+    def get_stats_request(self, id):
+        return requests.get(self._stats_request_url(id))
+
+    def wait_for_completed_stats_request(self, id):
+        api_call = lambda: self.get_stats_request(id)
+        def check(resp):
+            print resp.text
+            assert resp.status_code == 200
+            if resp.json()['status'] == "COMPLETED":
+                return True
+            if resp.json()['status'] in ['ERROR', 'INTERNAL_ERROR']:
+                raise Exception('Found %s status while polling for COMPLETED on stats id %s' % (resp.json()['status'], id))
+        self.wait_for_status(api_call, check, 1, 30)
 
     def wait_for_completed_poll_request(self, id):
         api_call = lambda: self.get_poll_request(id)
