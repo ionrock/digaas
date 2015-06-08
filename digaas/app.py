@@ -159,6 +159,34 @@ class ImageResource(object):
             resp.body = make_error_body(str(e))
 
 
+class StatsFileResource(object):
+    route = '/stats-file'
+
+    def on_get(self, req, resp):
+        """Handle GET /stats-files"""
+
+        if 'start_time' not in req.params:
+            resp.status = falcon.HTTP_400
+            resp.body = make_error_body('Need "start_time" url parameter')
+            return
+        if 'end_time' not in req.params:
+            resp.status = falcon.HTTP_400
+            resp.body = make_error_body('Need "end_time" url parameter')
+            return
+
+        try:
+            start_time = float(req.params['start_time'])
+            end_time = float(req.params['end_time'])
+        except ValueError as e:
+            resp.status = falcon.HTTP_400
+            resp.body = make_error_body(str(e))
+            return
+        data = storage.select_time_range(start_time, end_time)
+        resp.content_type = 'text/plain'
+        resp.status = falcon.HTTP_200
+        resp.body = "\n".join(data)
+
+
 # the uWSGI callable
 app = falcon.API()
 
@@ -171,6 +199,7 @@ add_resource(PollRequestResource)
 add_resource(StatsCollection)
 add_resource(StatsResource)
 add_resource(ImageResource)
+add_resource(StatsFileResource)
 
 def catch_all(req, resp):
     resp.status = falcon.HTTP_200
