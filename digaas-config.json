@@ -1,0 +1,6 @@
+{
+    "redis_host": null,
+    "redis_port": null,
+    "redis_password": null,
+    "dns_query_timeout": "0.5"
+}

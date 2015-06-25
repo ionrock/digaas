@@ -3,9 +3,9 @@ import time
 import gevent
 import dns.exception
 
-import digdig
-import digaas_config as config
-from digaas_config import storage
+from digaas import digdig
+from digaas.config import CONFIG as config
+from digaas import storage
 
 from consts import Status, Condition
 

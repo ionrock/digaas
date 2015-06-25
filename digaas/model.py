@@ -1,7 +1,6 @@
 import uuid
 
-import poll
-import consts
+from digaas import consts
 
 class PollRequest(object):
 

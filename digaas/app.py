@@ -11,15 +11,13 @@ Where
         app = falcon.API()
 """
 import json
-import os
 
 import falcon
 
-from digaas import digdig
 from digaas import model
 from digaas import poll
 from digaas import stats
-from digaas.digaas_config import storage
+from digaas import storage
 
 
 def make_error_body(message):

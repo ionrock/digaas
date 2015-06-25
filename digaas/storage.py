@@ -1,8 +1,8 @@
 import redis
 
-import digaas_config as CONFIG
-import model
-from consts import Condition
+from digaas.config import CONFIG
+from digaas import model
+from digaas.consts import Condition
 
 print "USING REDIS STORAGE"
 

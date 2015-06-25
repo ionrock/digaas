@@ -1,5 +1,4 @@
 import os
-import subprocess
 import textwrap
 import time
 import traceback
@@ -8,8 +7,8 @@ import uuid
 import gevent
 import gevent.subprocess
 
-from digaas_config import storage
-from consts import Status
+from digaas import storage
+from digaas.consts import Status
 
 
 # this module creates various files while generating a plot.

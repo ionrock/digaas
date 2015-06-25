@@ -15,15 +15,15 @@ _install-deps:
 	apt-get update && apt-get -y install python-pip python-dev ntp gnuplot
 
 _configure-digaas:
-	# write out digaas_config.py
-	cp digaas/digaas_config.py.sample digaas/digaas_config.py
-	sed -i -e "s/redis_host = None/redis_host = '127.0.0.1'/" digaas/digaas_config.py
-	sed -i -e "s/redis_port = None/redis_port = 6379/" digaas/digaas_config.py
 	python setup.py install
+	# write out /etc/digaas/digaas-config.json. this dir should exist via setup.py
+	cp digaas-config.json /etc/digaas/digaas-config.json
+	sed -i -e 's/"redis_host": null/"redis_host": "127.0.0.1"/' /etc/digaas/digaas-config.json
+	sed -i -e 's/"redis_port": null/"redis_port": "6379"/' /etc/digaas/digaas-config.json
 
 _configure-bind:
 	# disable bind apparmor restrictions if we find them
-	# ./scripts/disable-bind-apparmor.sh
+	./scripts/disable-bind-apparmor.sh
 	mkdir -p $(ZONE_FILE_DIR)
 	mkdir -p $(BIND_LOG_DIR)
 	cp $(BIND_CONF) /etc/bind/named.conf.options
