@@ -205,4 +205,12 @@ def catch_all(req, resp):
         "service": "digaas",
         "version": "0.0.1",
     })
-app.add_sink(catch_all, '/')
+
+try:
+    app.add_sink(catch_all, '/')
+except:
+    class CatchAll(object):
+        @staticmethod
+        def on_get(req, resp):
+            catch_all(req, resp)
+    app.set_default_route(CatchAll)

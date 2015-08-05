@@ -5,8 +5,12 @@ BIND_LOG_DIR = $(shell cat $(BIND_CONF) | grep log | grep file | sed 's/.*file "
 help:
 	@echo "setup-dev - install a local development environment with redis and bind"
 	@echo "restart-digaas - restart the digaas server"
+	@echo "tests - run the tests"
 
 setup-dev: _install-dev-deps _configure-bind _configure-digaas restart-digaas check-digaas
+
+test:
+	python -m unittest discover -v tests/
 
 _install-dev-deps:
 	apt-get update && apt-get -y install python-pip python-dev bind9 redis-server ntp gnuplot
