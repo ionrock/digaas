@@ -21,6 +21,8 @@ class Config(object):
         self.redis_host = data.get('redis_host')
         self.redis_port = int(data.get('redis_port'))
         self.redis_password = data.get('redis_password')
+        self.graphite_host = data.get('graphite_host')
+        self.graphite_port = int(data.get('graphite_port'))
         self.dns_query_timeout = float(data.get('dns_query_timeout'))
 
     def _load_config_file(self, filename):

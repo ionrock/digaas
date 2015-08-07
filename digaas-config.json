@@ -2,5 +2,7 @@
     "redis_host": null,
     "redis_port": null,
     "redis_password": null,
+    "graphite_host": null,
+    "graphite_port": null,
     "dns_query_timeout": "0.5"
 }

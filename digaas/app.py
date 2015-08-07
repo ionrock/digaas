@@ -18,6 +18,10 @@ from digaas import model
 from digaas import poll
 from digaas import stats
 from digaas import storage
+from digaas import graphite
+from digaas.config import CONFIG
+
+graphite.setup(CONFIG.graphite_host, CONFIG.graphite_port)
 
 
 def make_error_body(message):
