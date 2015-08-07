@@ -15,7 +15,7 @@ def dig(zone_name, nameserver, rdatatype, timeout):
     query = prepare_query(zone_name, rdatatype)
     start = time.time()
     result = dns.query.udp(query, nameserver, timeout=timeout)
-    graphite.push_query_time(time.time() - start)
+    graphite.push_query_time(nameserver, time.time() - start)
     return result
 
 def get_serial(zone_name, nameserver, timeout=1):

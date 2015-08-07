@@ -8,6 +8,7 @@ graphite_queue = None
 
 def graphite_worker(host, port):
     """The worker pops each item off the queue and sends it to graphite."""
+    global graphite_queue
     sock = socket()
     try:
         sock.connect((host, port))
@@ -23,11 +24,15 @@ def graphite_worker(host, port):
         print "graphite_worker: got data {0!r}".format(data)
         sock.sendall(data)
 
-def push_query_time(response_time):
+def push_query_time(nameserver, response_time):
     if graphite_queue is None:
         return
-    message = "digaas.query.response_time {0} {1}\n".format(
-        response_time, int(time.time()))
+    nameserver = nameserver.replace('.', '-')
+    timestamp = int(time.time())
+    message = "digaas.query.response_time.{0} {1} {2}\n".format(
+        nameserver, response_time, timestamp)
+    message += "digaas.query.count.{0} {1} {2}\n".format(
+        nameserver, 1, timestamp)
     graphite_queue.put(message)
 
 def setup(host, port):
