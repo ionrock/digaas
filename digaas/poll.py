@@ -14,11 +14,11 @@ def receive(poll_req):
     poll_req.status = Status.ACCEPTED
     storage.create_poll_request(poll_req)
     if poll_req.condition.startswith(Condition.DATA_EQUALS):
-        gevent.spawn(_handle_data_equals, poll_req)
+        gevent.spawn(_handle_poll_request, poll_req, _data_equals_check)
     elif poll_req.condition == Condition.SERIAL_NOT_LOWER:
-        gevent.spawn(_handle_serial_not_lower, poll_req)
+        gevent.spawn(_handle_poll_request, poll_req, _serial_not_lower_check)
     elif poll_req.condition == Condition.ZONE_REMOVED:
-        gevent.spawn(_handle_zone_removed, poll_req)
+        gevent.spawn(_handle_poll_request, poll_req, _zone_removed_check)
 
 
 def finish_request(poll_req, end_time):
@@ -30,22 +30,16 @@ def finish_request(poll_req, end_time):
         poll_req.duration = None
 
 
-def _handle_serial_not_lower(poll_req):
-    """Handle a poll request to check that the serial number of the zone is not
-    lower than the provided poll_req.serial. This is used for checking newly
-    created and updated zones.
-
-    :param poll_req: The PollRequest to handle.
+def _handle_poll_request(poll_req, function):
     """
-    start = time.time()
+    :param function: a function that returns True when we're done polling.
+        this function accepts the PollRequest as a parameter.
+    """
     end_time = None
+    start = time.time()
     while time.time() - start < poll_req.timeout:
-        serial = None
         try:
-            serial = digdig.get_serial(poll_req.query_name, poll_req.nameserver,
-                config.dns_query_timeout
-            )
-            if serial is not None and serial >= poll_req.serial:
+            if function(poll_req):
                 end_time = time.time()
                 break
         except dns.exception.Timeout as e:
@@ -53,66 +47,31 @@ def _handle_serial_not_lower(poll_req):
         except Exception as e:
             print e
             break
-        # ensure we yield to other greenlets
         gevent.sleep(seconds=poll_req.frequency)
-    # print "serial_not_lower loop done"
     finish_request(poll_req, end_time)
     storage.update_poll_request(poll_req)
 
 
-def _handle_zone_removed(poll_req):
-    """Handle a poll request to check that a zone is absent from
-    poll_req.nameserver"""
-    start = time.time()
-    end_time = None
-    while time.time() - start < poll_req.timeout:
-        try:
-            zone_found = digdig.zone_exists(poll_req.query_name,
-                poll_req.nameserver, config.dns_query_timeout
-            )
-            if not zone_found:
-                end_time = time.time()
-                break
-        except dns.exception.Timeout as e:
-            print 'dns.query.udp timed out'
-        except Exception as e:
-            print e
-            break
-        # ensure we yield to other greenlets
-        gevent.sleep(seconds=poll_req.frequency)
-
-    finish_request(poll_req, end_time)
-    storage.update_poll_request(poll_req)
+def _serial_not_lower_check(poll_req):
+    """Return True if the zone's serial is not lower than poll_req's value"""
+    serial = digdig.get_serial(poll_req.query_name, poll_req.nameserver,
+        config.dns_query_timeout
+    )
+    return serial is not None and serial >= poll_req.serial
 
 
-def _handle_data_equals(poll_req):
-    """Handle a poll request to check that a the data field of a record is
-    equal to a particular thing on the nameserver"""
-    start = time.time()
-    end_time = None
+def _zone_removed_check(poll_req):
+    """Return True if the zone is absent from the nameserver"""
+    zone_found = digdig.zone_exists(poll_req.query_name,
+        poll_req.nameserver, config.dns_query_timeout
+    )
+    return not zone_found
 
+
+def _data_equals_check(poll_req):
+    """Return True if the record's data matches the poll_req's value"""
     expected_data = poll_req.condition.lstrip(Condition.DATA_EQUALS)
-    # print "Handle 'data=', expected_data is '%s'" % expected_data
-
-    while time.time() - start < poll_req.timeout:
-        try:
-            # print "polling for %s record %s" % (poll_req.rdatatype, poll_req.query_name)
-            record_data = digdig.get_record_data(poll_req.query_name,
-                poll_req.nameserver, poll_req.rdatatype, config.dns_query_timeout
-            )
-            # print "  --> got data '%s'" % record_data
-            if record_data == expected_data:
-                end_time = time.time()
-                break
-        except dns.exception.Timeout as e:
-            print 'dns.query.udp timed out'
-        except Exception as e:
-            print e
-            break
-        # ensure we yield to other greenlets
-        gevent.sleep(seconds=poll_req.frequency)
-
-    finish_request(poll_req, end_time)
-    storage.update_poll_request(poll_req)
-
-
+    record_data = digdig.get_record_data(poll_req.query_name,
+        poll_req.nameserver, poll_req.rdatatype, config.dns_query_timeout
+    )
+    return record_data == expected_data
