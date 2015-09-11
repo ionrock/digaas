@@ -21,6 +21,15 @@ def receive(poll_req):
         gevent.spawn(_handle_zone_removed, poll_req)
 
 
+def finish_request(poll_req, end_time):
+    if end_time is not None:
+        poll_req.status = Status.COMPLETED
+        poll_req.duration = end_time - poll_req.start_time
+    else:
+        poll_req.status = Status.ERROR
+        poll_req.duration = None
+
+
 def _handle_serial_not_lower(poll_req):
     """Handle a poll request to check that the serial number of the zone is not
     lower than the provided poll_req.serial. This is used for checking newly
@@ -29,9 +38,9 @@ def _handle_serial_not_lower(poll_req):
     :param poll_req: The PollRequest to handle.
     """
     start = time.time()
-    serial = None
     end_time = None
     while time.time() - start < poll_req.timeout:
+        serial = None
         try:
             serial = digdig.get_serial(poll_req.query_name, poll_req.nameserver,
                 config.dns_query_timeout
@@ -47,12 +56,7 @@ def _handle_serial_not_lower(poll_req):
         # ensure we yield to other greenlets
         gevent.sleep(seconds=poll_req.frequency)
     # print "serial_not_lower loop done"
-    if serial is not None and end_time is not None:
-        poll_req.status = Status.COMPLETED
-        poll_req.duration = end_time - poll_req.start_time
-    else:
-        poll_req.status = Status.ERROR
-        poll_req.duration = None
+    finish_request(poll_req, end_time)
     storage.update_poll_request(poll_req)
 
 
@@ -77,12 +81,7 @@ def _handle_zone_removed(poll_req):
         # ensure we yield to other greenlets
         gevent.sleep(seconds=poll_req.frequency)
 
-    if end_time is not None:
-        poll_req.status = Status.COMPLETED
-        poll_req.duration = end_time - poll_req.start_time
-    else:
-        poll_req.status = Status.ERROR
-        poll_req.duration = None
+    finish_request(poll_req, end_time)
     storage.update_poll_request(poll_req)
 
 
@@ -113,12 +112,7 @@ def _handle_data_equals(poll_req):
         # ensure we yield to other greenlets
         gevent.sleep(seconds=poll_req.frequency)
 
-    if end_time is not None:
-        poll_req.status = Status.COMPLETED
-        poll_req.duration = end_time - poll_req.start_time
-    else:
-        poll_req.status = Status.ERROR
-        poll_req.duration = None
+    finish_request(poll_req, end_time)
     storage.update_poll_request(poll_req)
 
 

@@ -2,10 +2,13 @@ BIND_CONF = 'scripts/named.conf.options'
 ZONE_FILE_DIR = $(shell cat $(BIND_CONF) | grep directory | sed 's/.*directory "\([^"]*\)".*/\1/')
 BIND_LOG_DIR = $(shell cat $(BIND_CONF) | grep log | grep file | sed 's/.*file "\([^"]*\)\/bind[.]log".*/\1/')
 
+GRAPHITE_HOST='\"127.0.0.1\"'
+GRAPHITE_PORT=2023
+
 help:
 	@echo "setup-dev - install a local development environment with redis and bind"
 	@echo "restart-digaas - restart the digaas server"
-	@echo "tests - run the tests"
+	@echo "test - run the tests"
 
 setup-dev: _install-dev-deps _configure-bind _configure-digaas restart-digaas check-digaas
 
@@ -24,6 +27,8 @@ _configure-digaas:
 	cp digaas-config.json /etc/digaas/digaas-config.json
 	sed -i -e 's/"redis_host": null/"redis_host": "127.0.0.1"/' /etc/digaas/digaas-config.json
 	sed -i -e 's/"redis_port": null/"redis_port": "6379"/' /etc/digaas/digaas-config.json
+	sed -i -e 's/"graphite_host": null/"graphite_host": $(GRAPHITE_HOST)/' /etc/digaas/digaas-config.json
+	sed -i -e 's/"graphite_port": null/"graphite_port": $(GRAPHITE_PORT)/' /etc/digaas/digaas-config.json
 
 _configure-bind:
 	# disable bind apparmor restrictions if we find them
