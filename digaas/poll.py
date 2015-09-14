@@ -6,6 +6,7 @@ import dns.exception
 from digaas import digdig
 from digaas.config import CONFIG as config
 from digaas import storage
+from digaas import graphite
 
 from consts import Status, Condition
 
@@ -30,6 +31,17 @@ def finish_request(poll_req, end_time):
         poll_req.duration = None
 
 
+def publish_datapoint(poll_req):
+    if poll_req.status == Status.INTERNAL_ERROR:
+        graphite.push_error_data()
+    elif poll_req.status != Status.COMPLETED:
+        graphite.push_timeout_data(poll_req.nameserver)
+    elif poll_req.condition == Condition.ZONE_REMOVED:
+        graphite.push_delete_data(poll_req.nameserver, poll_req.duration)
+    else:
+        graphite.push_update_data(poll_req.nameserver, poll_req.duration)
+
+
 def _handle_poll_request(poll_req, function):
     """
     :param function: a function that returns True when we're done polling.
@@ -50,6 +62,7 @@ def _handle_poll_request(poll_req, function):
         gevent.sleep(seconds=poll_req.frequency)
     finish_request(poll_req, end_time)
     storage.update_poll_request(poll_req)
+    publish_datapoint(poll_req)
 
 
 def _serial_not_lower_check(poll_req):

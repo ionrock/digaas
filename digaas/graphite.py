@@ -24,6 +24,11 @@ def graphite_worker(host, port):
         print "graphite_worker: got data {0!r}".format(data)
         sock.sendall(data)
 
+
+def setup(host, port):
+    gevent.spawn(graphite_worker, host, port)
+
+
 def push_query_time(nameserver, response_time):
     if graphite_queue is None:
         return
@@ -35,5 +40,44 @@ def push_query_time(nameserver, response_time):
         nameserver, 1, timestamp)
     graphite_queue.put(message)
 
-def setup(host, port):
-    gevent.spawn(graphite_worker, host, port)
+
+def push_update_data(nameserver, duration):
+    if graphite_queue is None:
+        return
+    nameserver = nameserver.replace('.', '-')
+    timestamp = int(time.time())
+    message = "digaas.updates.response_time.{0} {1} {2}\n".format(
+        nameserver, duration, timestamp)
+    message += "digaas.updates.count.{0} {1} {2}\n".format(
+        nameserver, 1, timestamp)
+    graphite_queue.put(message)
+
+
+def push_delete_data(nameserver, duration):
+    if graphite_queue is None:
+        return
+    nameserver = nameserver.replace('.', '-')
+    timestamp = int(time.time())
+    message = "digaas.deletes.response_time.{0} {1} {2}\n".format(
+        nameserver, int(duration), timestamp)
+    message += "digaas.deletes.count.{0} {1} {2}\n".format(
+        nameserver, 1, timestamp)
+    graphite_queue.put(message)
+
+
+def push_timeout_data(nameserver):
+    if graphite_queue is None:
+        return
+    nameserver = nameserver.replace('.', '-')
+    timestamp = int(time.time())
+    message = "digaas.timeouts.count.{0} {1} {2}\n".format(
+        nameserver, 1, timestamp)
+    graphite_queue.put(message)
+
+
+def push_error_data():
+    if graphite_queue is None:
+        return
+    timestamp = int(time.time())
+    message = "digaas.errors {0} {1}\n".format(1, timestamp)
+    graphite_queue.put(message)
