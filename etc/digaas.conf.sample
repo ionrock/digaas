@@ -1,0 +1,10 @@
+[sqlalchemy]
+engine = mysql://root@172.17.0.18/digaas
+
+[graphite]
+host =
+port =
+
+[digaas]
+dns_query_timeout = 2.0
+

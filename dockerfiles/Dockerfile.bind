@@ -1,0 +1,28 @@
+# if you want rndc to work from host to container,
+# the container needs to have a matching version of bind/rndc.
+# pick the same OS here as your host OS.
+FROM ubuntu:15.04
+
+EXPOSE 53/udp
+EXPOSE 53/tcp
+EXPOSE 953/tcp
+EXPOSE 953/udp
+
+USER root
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN apt-get update && apt-get install -y \
+    bind9 \
+    ntp
+
+COPY ./named.conf.options /etc/bind/named.conf.options
+COPY ./rndc.key /etc/bind/rndc.key
+RUN mkdir -p /var/cache/bind/
+RUN mkdir -p /var/log/bind/
+RUN chown -R bind:bind /var/cache/bind
+RUN chown -R bind:bind /var/log/bind
+RUN chown bind:bind /etc/bind/rndc.key
+
+RUN service ntp stop && ntpd -gq && service ntp start
+
+CMD service bind9 restart && tail -F /var/log/bind/bind.log

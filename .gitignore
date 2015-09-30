@@ -1,0 +1,6 @@
+*.pyc
+*.log
+.venv/
+digaas.conf
+test.conf
+__pycache__/
