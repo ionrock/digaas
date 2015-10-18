@@ -4,3 +4,4 @@
 digaas.conf
 test.conf
 __pycache__/
+*egg-info/

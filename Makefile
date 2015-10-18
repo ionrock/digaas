@@ -1,102 +1,38 @@
 SHELL := /bin/bash
 
-BIND_TAG=digaas-bind
-MYSQL_TAG=digaas-mysql
+help:
+	@echo "start                - start all the services"
+	@echo "stop                 - stop all the services"
+	@echo "start-containers     - build and restart the db and bind containers"
+	@echo "stop-containers      - kill and remove the containers"
+	@echo "start-api            - start digaas"
+	@echo "stop-api             - stop digaas"
 
-BIND_CID=$(shell docker ps | grep $(BIND_TAG) | cut -f1 -d' ')
-MYSQL_CID=$(shell docker ps | grep $(MYSQL_TAG) | cut -f1 -d' ')
-BIND_IP=$(shell docker inspect $(BIND_CID) | jq -r '.[0].NetworkSettings.IPAddress')
-MYSQL_IP=$(shell docker inspect $(MYSQL_CID) | jq -r '.[0].NetworkSettings.IPAddress')
+start-containers: stop-containers
+	make -f makefiles/db.makefile build
+	make -f makefiles/db.makefile start
+	make -f makefiles/bind.makefile build
+	make -f makefiles/bind.makefile start
+	@echo -e "\n-------- waiting for services to start up ---------"
+	sleep 10
+	@echo -e "\n-------- checking bind is running ---------"
+	make -f makefiles/bind.makefile check
+	@echo -e "\n-------- checking database is running ---------"
+	make -f makefiles/db.makefile check
 
-start-digaas: stop-digaas
-	python digaas/api.py &> /dev/null &
-	sleep 1
+stop-containers:
+	make -f makefiles/db.makefile stop
+	make -f makefiles/bind.makefile stop
 
-stop-digaas:
-	pkill -9 python || true
+start-api:
+	make -f makefiles/api.makefile config
+	make -f makefiles/api.makefile start
+	sleep 2
+	make -f makefiles/api.makefile check
 
-check-digaas:
-	@curl -s localhost:8123
+stop-api:
+	make -f makefiles/api.makefile stop
 
-quickcheck: start-digaas
-	curl -s localhost:8123 && echo || true
-	@pkill -9 python
+start: start-containers start-api
 
-runtests: start-digaas
-	specter || true
-	@pkill -9 python
-
-test-config:
-	@echo -e "[digaas]\nendpoint = http://localhost:8123\n\n[bind]\nhost = $(BIND_IP)" > test.conf
-	cat test.conf
-
-digaas-config:
-	@echo -e "[sqlalchemy]\nengine = mysql://root@$(MYSQL_IP)/digaas\n" > digaas.conf
-	@echo -e "[graphite]\nhost = \nport = \n" >> digaas.conf
-	@echo -e "[digaas]\ndns_query_timeout = 2.0\n" >> digaas.conf
-	cat digaas.conf
-
-
-########################################
-# Docker stuff
-########################################
-build: build-bind build-mysql
-
-start: start-bind start-mysql
-
-stop: stop-bind stop-mysql
-
-check: check-bind check-mysql
-
-clean: stop
-	docker rmi -f $(BIND_TAG) || true
-
-ips:
-	@echo "Bind: $(BIND_IP)"
-	@echo "Mysql: $(MYSQL_IP)"
-
-
-########################################
-# Bind docker
-########################################
-build-bind:
-	cd dockerfiles && docker build -t $(BIND_TAG) -f ./Dockerfile.bind .
-
-start-bind:
-	docker run --name $(BIND_TAG) -d -t $(BIND_TAG)
-
-check-bind:
-	rndc -k dockerfiles/rndc.key -s $(BIND_IP) status
-
-stop-bind:
-	docker kill $(BIND_TAG) || true
-	docker rm -f $(BIND_TAG) || true
-
-bind-ip:
-	@echo $(BIND_IP)
-
-
-########################################
-# database docker
-########################################
-build-mysql:
-	cd dockerfiles && docker build -t $(MYSQL_TAG) -f ./Dockerfile.mysql .
-
-start-mysql:
-	@docker run --name $(MYSQL_TAG) -d -t $(MYSQL_TAG)
-
-check-mysql:
-	mysql -h $(MYSQL_IP) -u root -e status
-
-stop-mysql:
-	docker kill $(MYSQL_TAG) || true
-	docker rm -f $(MYSQL_TAG) || true
-
-mysql-ip:
-	@echo $(MYSQL_IP)
-
-sql-engine:
-	@echo "mysql://root@$(MYSQL_IP)/digaas"
-
-mysql-shell:
-	mysql -h $(MYSQL_IP) -u root
+stop: stop-api stop-containers
