@@ -2,6 +2,10 @@ import aiohttp
 import asyncio
 from aiohttp import web
 import json
+import functools
+
+from digaas.models import Observer
+from digaas.storage import Storage
 
 VERSION = {
     'service': 'digaas',
@@ -19,12 +23,21 @@ async def get_root(request):
 
 async def get_observer(request):
     id = request.match_info['id']
-    return web.Response(body=dump_json({'id': id}))
+    observer = await Storage.get(id, Observer)
+    return web.Response(body=dump_json(observer.to_dict()))
 
 async def post_observer(request):
     data = await request.read()
     data = parse_json(data)
-    return web.Response(body=dump_json({'poo': 'poo'}))
+    observer = Observer.from_dict(data)
+    observer.status = Observer.STATUSES.ACCEPTED
+
+    observer = Storage.create(observer)
+
+    return web.Response(
+        body=dump_json(observer.to_dict()),
+        status=201,
+    )
 
 class API(object):
 

@@ -12,7 +12,7 @@ cfg.CONF.register_opts([
     cfg.StrOpt('host'),
 ], group='bind')
 
-def _find_config_file(path='test.conf')
+def _find_config_file(path='test.conf'):
     if not os.path.exists(path):
         raise Exception("Need config file '{0}' to run the tests".format(path))
     return path

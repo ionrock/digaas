@@ -6,7 +6,9 @@ setup(
     packages=['digaas'],
     install_requires=[
         'dnspython3',
-        'falcon',
-        'uwsgi',
+        'mysqlclient',
+        'oslo.config',
+        'SQLAlchemy',
+        'aiohttp',
     ],
 )

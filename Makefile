@@ -8,27 +8,26 @@ MYSQL_CID=$(shell docker ps | grep $(MYSQL_TAG) | cut -f1 -d' ')
 BIND_IP=$(shell docker inspect $(BIND_CID) | jq -r '.[0].NetworkSettings.IPAddress')
 MYSQL_IP=$(shell docker inspect $(MYSQL_CID) | jq -r '.[0].NetworkSettings.IPAddress')
 
+start-digaas: stop-digaas
+	python digaas/api.py &> /dev/null &
+	sleep 1
 
-start-uwsgi: stop-uwsgi
-	uwsgi --master --die-on-term --emperor /tmp --http :8123 --wsgi-file digaas/app.py --callable app --log-syslog &
-	@sleep 1
-
-stop-uwsgi:
-	@pkill -9 uwsgi || true
+stop-digaas:
+	pkill -9 python || true
 
 check-digaas:
 	@curl -s localhost:8123
 
-quickcheck: start-uwsgi
+quickcheck: start-digaas
 	curl -s localhost:8123 && echo || true
-	@pkill uwsgi
+	@pkill -9 python
 
-runtests: start-uwsgi
-	specter
-	@pkill uwsgi
+runtests: start-digaas
+	specter || true
+	@pkill -9 python
 
 test-config:
-	@echo -e "[digaas]\nendpoint = localhost:8123\n\n[bind]\nhost = $(BIND_IP)" > test.conf
+	@echo -e "[digaas]\nendpoint = http://localhost:8123\n\n[bind]\nhost = $(BIND_IP)" > test.conf
 	cat test.conf
 
 digaas-config:

@@ -1,21 +1,26 @@
 import os
 
-import sqlalchemy
+import aiomysql.sa
 from sqlalchemy import Table, Column, Integer, MetaData, String
 
 from digaas.config import cfg
 
+metadata = MetaData()
+
 _ENGINE = None
-def get_engine():
+async def get_engine():
     global _ENGINE
     if not _ENGINE:
-        _ENGINE = sqlalchemy.create_engine(
-            cfg.CONF.sqlalchemy.engine,
+        print(cfg.CONF.sqlalchemy.engine)
+        _ENGINE = await aiomysql.sa.create_engine(
+            # cfg.CONF.sqlalchemy.engine,
+            user='root',
+            host='172.17.0.18',
+            db='digaas',
             echo=True,
         )
     return _ENGINE
 
-metadata = MetaData()
 observers_table = Table('observers', metadata,
     Column('id', Integer, nullable=False, primary_key=True),
     Column('name', String(512), nullable=False),
@@ -35,5 +40,9 @@ observers_table = Table('observers', metadata,
     Column('rdatatype', String(16), nullable=True),
 )
 
-# tell sqlalchemy to create the tables
-metadata.create_all(get_engine())
+async def create_tables():
+    engine = await get_engine()
+    # tell sqlalchemy to create the tables
+    metadata.create_all(engine)
+create_tables()
+
