@@ -36,3 +36,9 @@ stop-api:
 start: start-containers start-api
 
 stop: stop-api stop-containers
+
+run:
+	gunicorn -w 4 --bind '0.0.0.0:8123' digaas.app:app
+
+test:
+	make -f makefiles/api.makefile runtests

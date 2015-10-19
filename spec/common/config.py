@@ -17,4 +17,4 @@ def _find_config_file(path='test.conf'):
         raise Exception("Need config file '{0}' to run the tests".format(path))
     return path
 
-cfg.CONF(default_config_files=[_find_config_file()])
+cfg.CONF(args=[], default_config_files=[_find_config_file()])

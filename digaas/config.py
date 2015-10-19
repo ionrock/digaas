@@ -34,7 +34,7 @@ def _find_config_file():
     raise Exception("Failed to find digaas.conf at any of these paths: {0}"
                     .format(_LOCATIONS))
 
-cfg.CONF(default_config_files=[_find_config_file()])
+cfg.CONF(args=[], default_config_files=[_find_config_file()])
 
 
 if __name__ == '__main__':

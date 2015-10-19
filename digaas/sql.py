@@ -1,28 +1,38 @@
+import logging
 import os
 
-import aiomysql.sa
+import sqlalchemy
 from sqlalchemy import Table, Column, Integer, MetaData, String
 
 from digaas.config import cfg
 
-metadata = MetaData()
-
 _ENGINE = None
-async def get_engine():
+
+
+# we want these logs to propagate up to the root logger, so they end up in the
+# same log file as all other logs. We *don't* want these logs to print to
+# stdout. What do we do?
+#   1. if we remove all the handlers, it still prints to stdout
+#   2. if we set `sql_logger.disabled = True`, it doesn't print anywhere
+#   3. if we use a handler to output to the same log file, we get two copies of
+#      the logs (one formatted and the other not)
+#   4. if we set `sql_logger.propagate = False`, we lose our default formatting
+sql_logger = logging.getLogger('sqlalchemy.engine.base.Engine')
+sql_logger.handlers = [logging.FileHandler('/dev/null')]
+sql_logger.setLevel(logging.DEBUG)
+
+def get_engine():
     global _ENGINE
     if not _ENGINE:
-        print(cfg.CONF.sqlalchemy.engine)
-        _ENGINE = await aiomysql.sa.create_engine(
-            # cfg.CONF.sqlalchemy.engine,
-            user='root',
-            host='172.17.0.18',
-            db='digaas',
+        _ENGINE = sqlalchemy.create_engine(
+            cfg.CONF.sqlalchemy.engine,
             echo=True,
         )
     return _ENGINE
 
+metadata = MetaData()
 observers_table = Table('observers', metadata,
-    Column('id', Integer, nullable=False, primary_key=True),
+    Column('id', Integer, nullable=False, primary_key=True, autoincrement=True),
     Column('name', String(512), nullable=False),
     Column('nameserver', String(512), nullable=False),
     Column('start_time', Integer, nullable=False),
@@ -40,9 +50,5 @@ observers_table = Table('observers', metadata,
     Column('rdatatype', String(16), nullable=True),
 )
 
-async def create_tables():
-    engine = await get_engine()
-    # tell sqlalchemy to create the tables
-    metadata.create_all(engine)
-create_tables()
-
+# tell sqlalchemy to create the tables
+metadata.create_all(get_engine())

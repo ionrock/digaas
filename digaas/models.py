@@ -1,5 +1,3 @@
-from enum import Enum
-
 from digaas.sql import observers_table
 from digaas.consts import ObserverStatuses, ObserverTypes
 
@@ -56,7 +54,6 @@ class Observer(object):
             raise ValueError("rdata and rdatatype must both not be null for "
                              "RECORD_* types")
 
-
     @classmethod
     def from_dict(cls, data):
         return cls(**data)
@@ -66,6 +63,3 @@ class Observer(object):
 
     def __str__(self):
         return "{0}{1}".format(self.__class__.__name__, str(self.to_dict()))
-
-if __name__ == '__main__':
-    import ipdb; ipdb.set_trace()
