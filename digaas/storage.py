@@ -5,6 +5,7 @@ from sqlalchemy.sql import select, update
 
 LOG = logging.getLogger(__name__)
 
+
 class Storage(object):
 
     @classmethod

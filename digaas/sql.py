@@ -1,5 +1,4 @@
 import logging
-import os
 
 import sqlalchemy
 from sqlalchemy import Table, Column, Integer, MetaData, String
@@ -21,6 +20,7 @@ sql_logger = logging.getLogger('sqlalchemy.engine.base.Engine')
 sql_logger.handlers = [logging.FileHandler('/dev/null')]
 sql_logger.setLevel(logging.DEBUG)
 
+
 def get_engine():
     global _ENGINE
     if not _ENGINE:
@@ -31,8 +31,10 @@ def get_engine():
     return _ENGINE
 
 metadata = MetaData()
-observers_table = Table('observers', metadata,
-    Column('id', Integer, nullable=False, primary_key=True, autoincrement=True),
+observers_table = Table(
+    'observers', metadata,
+    Column('id', Integer, nullable=False, primary_key=True,
+           autoincrement=True),
     Column('name', String(512), nullable=False),
     Column('nameserver', String(512), nullable=False),
     Column('start_time', Integer, nullable=False),

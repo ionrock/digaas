@@ -1,6 +1,7 @@
 from digaas.sql import observers_table
 from digaas.consts import ObserverStatuses, ObserverTypes
 
+
 class Observer(object):
     TABLE = observers_table
     TYPES = ObserverTypes()

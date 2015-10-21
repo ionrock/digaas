@@ -23,8 +23,9 @@ cfg.CONF.register_opts([
 
 cfg.CONF.register_opts([
     cfg.FloatOpt('dns_query_timeout', default=2.0,
-        help="the timeout on low-level dns queries")
+                 help="the timeout on low-level dns queries")
 ], group='digaas')
+
 
 def _find_config_file():
     for location in _LOCATIONS:
@@ -35,10 +36,3 @@ def _find_config_file():
                     .format(_LOCATIONS))
 
 cfg.CONF(args=[], default_config_files=[_find_config_file()])
-
-
-if __name__ == '__main__':
-    CONF = cfg.CONF
-    print(CONF.redis.host)
-    print(CONF.redis.port)
-    print(CONF.redis.password)

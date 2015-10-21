@@ -1,5 +1,6 @@
 import json
 
+
 class Model(object):
 
     @classmethod

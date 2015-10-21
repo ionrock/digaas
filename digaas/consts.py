@@ -5,6 +5,7 @@ class ObserverStatuses(object):
         self.ERROR = 'ERROR'
         self.INTERNAL_ERROR = 'INTERNAL_ERROR'
 
+
 class ObserverTypes(object):
     def __init__(self):
         self.ZONE_CREATE = 'ZONE_CREATE'

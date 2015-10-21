@@ -1,4 +1,3 @@
-import json
 import logging
 
 import falcon
@@ -22,8 +21,10 @@ class DigaasAPI(falcon.API):
         for r in self.RESOURCES:
             r().register(self)
 
+
 def setup_logging():
-    FORMAT='[%(asctime)s] {PID=%(process)d} %(name)s [%(levelname)s] %(message)s'
+    FORMAT = \
+        '[%(asctime)s] {PID=%(process)d} %(name)s [%(levelname)s] %(message)s'
     logging.basicConfig(
         filename='digaas.log',
         filemode='a',

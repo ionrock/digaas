@@ -11,8 +11,10 @@ from digaas.version import VERSION
 
 LOG = logging.getLogger(__name__)
 
+
 def make_error_body(msg):
     return json.dumps({'error': msg})
+
 
 def deserializer(model_class):
     """Return a hook we can use to deserialize a request to the model"""

@@ -1,6 +1,7 @@
 import requests
 from spec.common.model import Model
 
+
 class BaseClient(object):
 
     def __init__(self, endpoint):

@@ -2,6 +2,7 @@ import logging
 import time
 
 import gevent
+import dns.exception
 
 from digaas.models import Observer
 from digaas.storage import Storage
@@ -9,26 +10,33 @@ import digaas.digdig as digdig
 
 LOG = logging.getLogger(__name__)
 
+
 def is_zone_created(observer):
     return digdig.zone_exists(observer.name, observer.nameserver)
+
 
 def is_zone_deleted(observer):
     return not is_zone_created(observer)
 
+
 def is_zone_updated(observer):
     serial = digdig.get_serial(observer.name, observer.nameserver)
     return serial is not None and serial >= observer.serial
+
 
 def does_record_data_match(observer):
     data = digdig.get_record_data(observer.name, observer.nameserver,
                                   observer.rdatatype)
     return data == observer.rdata
 
+
 def is_record_created(observer):
     return does_record_data_match(observer)
 
+
 def is_record_updated(observer):
     return does_record_data_match(observer)
+
 
 def is_record_deleted(observer):
     # TODO: what if multiple records under the same name?
@@ -81,4 +89,3 @@ def spawn_observer(observer):
     check_function = CHECK_FUNCTIONS[observer.type]
     gevent.spawn(run_observer, observer, check_function)
     return observer
-
