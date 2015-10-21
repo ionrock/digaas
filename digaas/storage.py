@@ -8,10 +8,6 @@ LOG = logging.getLogger(__name__)
 class Storage(object):
 
     @classmethod
-    def _get_connection(cls):
-        return get_engine().connect()
-
-    @classmethod
     def create(cls, obj):
         """Write the obj to the database. This sets obj.id and returns obj."""
         data = obj.to_dict()
@@ -20,17 +16,9 @@ class Storage(object):
 
         query = obj.TABLE.insert().values(**data)
 
-        conn = cls._get_connection()
-        result = conn.execute(query)
+        result = get_engine().execute(query)
         obj.id = result.inserted_primary_key[0]
-        if obj.id <= 0:
-            LOG.error("FAILED: object id is 0")
-            LOG.error("  object: %s" % obj)
-            LOG.error("  result.inserted_primary_key = %s" % result.inserted_primary_key)
-            LOG.error(str(result.__dict__))
-        result.close()
-        conn.close()
-        LOG.debug(str(obj))
+        LOG.debug("Created %s" % obj)
         return obj
 
     @classmethod
@@ -42,9 +30,7 @@ class Storage(object):
             .where(obj.TABLE.c.id == obj.id) \
             .values(**obj.to_dict())
         # TODO: success/failure detection
-        conn = cls._get_connection()
-        conn.execute(query)
-        conn.close()
+        get_engine().execute(query)
 
     @classmethod
     def get(cls, id, obj_class):
@@ -58,21 +44,3 @@ class Storage(object):
         data = {k: v for k, v in zip(result.keys(), row)}
         result.close()
         return obj_class.from_dict(data)
-
-
-if __name__ == '__main__':
-    from digaas.models import Observer
-    observer = Observer(
-        name='mrkrabs.com.',
-        nameserver='127.0.0.1',
-        start_time=11111111,
-        interval=1,
-        timeout=9,
-        type='ZONE_CREATE',
-        status='ACCEPTED',
-    )
-
-    # import ipdb; ipdb.set_trace()
-    Storage.create(observer)
-
-
