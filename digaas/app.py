@@ -1,16 +1,6 @@
 import json
 import logging
 
-FORMAT='[%(asctime)s] {PID=%(process)d} %(name)s [%(levelname)s] %(message)s'
-logging.basicConfig(
-    filename='digaas.log',
-    filemode='a',
-    format=FORMAT,
-    level=logging.DEBUG,
-)
-
-from gevent.monkey import patch_all
-patch_all()
 import falcon
 
 from digaas.config import cfg
@@ -32,4 +22,15 @@ class DigaasAPI(falcon.API):
         for r in self.RESOURCES:
             r().register(self)
 
+def setup_logging():
+    FORMAT='[%(asctime)s] {PID=%(process)d} %(name)s [%(levelname)s] %(message)s'
+    logging.basicConfig(
+        filename='digaas.log',
+        filemode='a',
+        format=FORMAT,
+        level=logging.DEBUG,
+    )
+
+
+setup_logging()
 app = DigaasAPI()
