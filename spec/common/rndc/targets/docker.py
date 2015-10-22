@@ -1,10 +1,6 @@
-import logging
-import re
-
-from spec.common.rndc.commands import run_cmd
+from spec.common.rndc.utils import run_cmd
+from spec.common.rndc.utils import parse_rndc_version
 from spec.common.rndc.targets.base import BaseRndcTarget
-
-logging.basicConfig(level=logging.DEBUG)
 
 
 class DockerRndcTarget(BaseRndcTarget):
@@ -28,10 +24,7 @@ class DockerRndcTarget(BaseRndcTarget):
         Bind running in the docker container
         """
         out, _, _, = self._docker_exec('rndc', 'status')
-        version_line = out.split('\n')[0]
-        assert version_line.startswith('version')
-        parts = re.findall("\w+[.]\w+[.]\w+", version_line)[0].split('.')
-        return tuple(map(int, parts))
+        return parse_rndc_version(out)
 
     def write_zone_file(self, zone):
         super(DockerRndcTarget, self).write_zone_file(zone)

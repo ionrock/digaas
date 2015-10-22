@@ -3,6 +3,7 @@ from oslo_config import cfg
 
 cfg.CONF.register_group(cfg.OptGroup('digaas'))
 cfg.CONF.register_group(cfg.OptGroup('bind'))
+cfg.CONF.register_group(cfg.OptGroup('bind:docker'))
 
 cfg.CONF.register_opts([
     cfg.StrOpt('endpoint'),
@@ -10,7 +11,13 @@ cfg.CONF.register_opts([
 
 cfg.CONF.register_opts([
     cfg.StrOpt('host'),
+    cfg.StrOpt('type', help="For now, 'docker' is the only value this can be"),
 ], group='bind')
+
+cfg.CONF.register_opts([
+    cfg.StrOpt('dir', help="Where zone files are stored in the container"),
+    cfg.StrOpt('id', help="The container name or id"),
+], group='bind:docker')
 
 
 def _find_config_file(path='test.conf'):
