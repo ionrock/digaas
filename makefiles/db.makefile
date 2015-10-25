@@ -29,7 +29,7 @@ clean:
 	docker rmi -f $(MYSQL_TAG) || true
 
 check:
-	mysql -h $(MYSQL_IP) -u root -e status
+	docker exec $(MYSQL_TAG) mysql -u root -e status
 
 ip:
 	@echo $(MYSQL_IP)
@@ -38,4 +38,4 @@ sqlengine:
 	@echo "mysql://root@$(MYSQL_IP)/digaas"
 
 shell:
-	mysql -h $(MYSQL_IP) -u root
+	docker exec -it $(MYSQL_TAG) mysql -u root

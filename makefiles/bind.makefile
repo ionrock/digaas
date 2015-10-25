@@ -29,7 +29,7 @@ clean:
 	docker rmi -f $(BIND_TAG) || true
 
 check:
-	rndc -k $(RNDC_KEY) -s $(BIND_IP) status
+	docker exec $(BIND_TAG) rndc status
 
 ip:
 	@echo $(BIND_IP)
