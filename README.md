@@ -24,8 +24,7 @@ These instructions will give you:
 
 ### Instructions
 
-- (Install docker)[https://docs.docker.com/installation/ubuntulinux/]. You
-should have docker version 1.8.3+ installed.
+- [Install docker](https://docs.docker.com/installation/ubuntulinux/). This is know to work with docker version 1.8.3.
 - Install some apt dependencies for digaas and the makefiles:
 
 ```
@@ -37,6 +36,7 @@ apt-get install python-dev python-virtualenv libmysqlclient-dev jq
 ```
 virtualenv .venv
 . .ven/bin/activate
+```
 
 - Install the pip dependencies inside the virtualenv
 
@@ -48,5 +48,5 @@ pip install -e .
 
 - Run `make start` to build and start the docker containers. The makefile
 includes checks to ensure that mysql and bind are running.
-- Run `make test` to run the funtional tests. This will restart the digaas api
-before running the tests, and stop the api afterwards.
+- Run `make test` to run the functional tests. This will restart the digaas 
+api before running the tests, and stop the api afterwards.
