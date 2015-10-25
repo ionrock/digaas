@@ -1,7 +1,6 @@
 import time
 
 from specter import Spec, expect, require
-from specter import metadata
 
 from spec import datagen
 from spec.common.model import Model
@@ -12,7 +11,81 @@ from spec.common.rndc import load_rndc_target
 CONF = cfg.CONF
 
 
-class Observers(Spec):
+class BindUtils(object):
+
+    def _add_zone_to_bind(self, zone):
+        """This will make the zone queryable"""
+        _, _, ret = self.rndc_target.write_zone_file(zone)
+        require(ret).to.equal(0)
+
+        _, _, ret = self.rndc_target.addzone(zone)
+        require(ret).to.equal(0)
+
+    def _update_zone_in_bind(self, updated_zone):
+        _, _, ret = self.rndc_target.write_zone_file(updated_zone)
+        require(ret).to.equal(0)
+
+        _, _, ret = self.rndc_target.reload(updated_zone)
+        require(ret).to.equal(0)
+
+    def _remove_zone_from_bind(self, zone):
+        """Remove the zone and zone file from bind"""
+        _, _, ret = self.rndc_target.delzone(zone)
+        require(ret).to.equal(0)
+
+        _, _, ret = self.rndc_target.delete_zone_file(zone)
+        require(ret).to.equal(0)
+
+
+class ClientUtils(object):
+
+    def _post_observer(self, type, timeout=5):
+        """Returns a tuple (observer, resp) where observer is the model that
+        was posted to the api. The returned model is resp.model"""
+        observer = Model.from_dict({
+            "name": self.zone.name,
+            "nameserver": CONF.bind.host,
+            "start_time": int(time.time()),
+            "interval": 1,
+            "timeout": timeout,
+            "type": type,
+        })
+        resp = self.client.post_observer(observer)
+        require(resp.status_code).to.equal(201)
+        return observer, resp
+
+    def _post_zone_update_observer(self, updated_zone, timeout=5):
+        observer = Model.from_dict({
+            "name": updated_zone.name,
+            "nameserver": CONF.bind.host,
+            "start_time": int(time.time()),
+            "interval": 1,
+            "timeout": timeout,
+            "type": "ZONE_UPDATE",
+            "serial": updated_zone.serial,
+        })
+        resp = self.client.post_observer(observer)
+        require(resp.status_code).to.equal(201)
+        return observer, resp
+
+    def _wait_until_complete(self, id, timeout=10, interval=0.5):
+        get_resp = None
+        end = time.time() + timeout
+        while time.time() < end:
+            get_resp = self.client.get_observer(id)
+            require(get_resp.status_code).to.equal(200)
+            if get_resp.model.status == "COMPLETE":
+                return get_resp
+            elif get_resp.model.status == "ERROR":
+                raise Exception("Observer %s went to error" % get_resp.model)
+            time.sleep(interval)
+        msg = "Timed out waiting for a COMPLETE status"
+        if get_resp:
+            msg += ": %s" % get_resp.model
+        raise Exception(msg)
+
+
+class Observers(Spec, BindUtils, ClientUtils):
 
     def before_all(self):
         self.client = DigaasClient(CONF.digaas.endpoint)
@@ -119,7 +192,6 @@ class Observers(Spec):
         require(get_resp.status_code).to.equal(200)
         expect(get_resp.model.status).to.equal("ERROR")
 
-    @metadata(run="true")
     def zone_update_observer_goes_to_active_on_updated_serial(self):
         updated_zone = self.zone.clone()
         updated_zone.serial += 1
@@ -132,71 +204,3 @@ class Observers(Spec):
         get_resp = self._wait_until_complete(resp.model.id)
         expect(get_resp.model.status).to.equal("COMPLETE")
         expect(get_resp.model.duration).to.be_greater_than(2)
-
-    def _post_observer(self, type, timeout=5):
-        """Returns a tuple (observer, resp) where observer is the model that
-        was posted to the api. The returned model is resp.model"""
-        observer = Model.from_dict({
-            "name": self.zone.name,
-            "nameserver": CONF.bind.host,
-            "start_time": int(time.time()),
-            "interval": 1,
-            "timeout": timeout,
-            "type": type,
-        })
-        resp = self.client.post_observer(observer)
-        require(resp.status_code).to.equal(201)
-        return observer, resp
-
-    def _post_zone_update_observer(self, updated_zone, timeout=5):
-        observer = Model.from_dict({
-            "name": updated_zone.name,
-            "nameserver": CONF.bind.host,
-            "start_time": int(time.time()),
-            "interval": 1,
-            "timeout": timeout,
-            "type": "ZONE_UPDATE",
-            "serial": updated_zone.serial,
-        })
-        resp = self.client.post_observer(observer)
-        require(resp.status_code).to.equal(201)
-        return observer, resp
-
-    def _add_zone_to_bind(self, zone):
-        """This will make the zone queryable"""
-        _, _, ret = self.rndc_target.write_zone_file(zone)
-        require(ret).to.equal(0)
-
-        _, _, ret = self.rndc_target.addzone(zone)
-        require(ret).to.equal(0)
-
-    def _update_zone_in_bind(self, updated_zone):
-        _, _, ret = self.rndc_target.write_zone_file(updated_zone)
-        require(ret).to.equal(0)
-
-        _, _, ret = self.rndc_target.reload(updated_zone)
-        require(ret).to.equal(0)
-
-    def _remove_zone_from_bind(self, zone):
-        """Remove the zone and zone file from bind"""
-        _, _, ret = self.rndc_target.delzone(zone)
-        require(ret).to.equal(0)
-
-        _, _, ret = self.rndc_target.delete_zone_file(zone)
-        require(ret).to.equal(0)
-
-    def _wait_until_complete(self, id, timeout=10, interval=0.5):
-        get_resp = None
-        end = time.time() + timeout
-        while time.time() < end:
-            get_resp = self.client.get_observer(id)
-            require(get_resp.status_code).to.equal(200)
-            if get_resp.model.status == "COMPLETE":
-                return get_resp
-            elif get_resp.model.status == "ERROR":
-                raise Exception("Observer %s went to error" % get_resp.model)
-            time.sleep(interval)
-        msg = "Timed out waiting for a COMPLETE status"
-        if get_resp:
-            msg += ": %s" % get_resp.model
-        raise Exception(msg)
