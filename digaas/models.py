@@ -50,8 +50,7 @@ class Observer(object):
         record_types = (self.TYPES.RECORD_CREATE, self.TYPES.RECORD_UPDATE,
                         self.TYPES.RECORD_DELETE)
         if self.type in record_types \
-                and self.rdata is not None \
-                and self.rdatatype is not None:
+                and (self.rdata is None or self.rdatatype is None):
             raise ValueError("rdata and rdatatype must both not be null for "
                              "RECORD_* types")
 

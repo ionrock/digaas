@@ -72,6 +72,9 @@ class Record(object):
         self.data = data
         assert self.name.endswith('.')
 
+    def clone(self):
+        return self.__class__(**self.__dict__)
+
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 

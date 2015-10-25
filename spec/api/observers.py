@@ -68,6 +68,21 @@ class ClientUtils(object):
         require(resp.status_code).to.equal(201)
         return observer, resp
 
+    def _post_record_observer(self, type, record, timeout=5):
+        observer = Model.from_dict({
+            "name": record.name,
+            "nameserver": CONF.bind.host,
+            "start_time": int(time.time()),
+            "interval": 1,
+            "timeout": timeout,
+            "type": type,
+            "rdata": record.data,
+            "rdatatype": record.type,
+        })
+        resp = self.client.post_observer(observer)
+        require(resp.status_code).to.equal(201)
+        return observer, resp
+
     def _wait_until_complete(self, id, timeout=10, interval=0.5):
         get_resp = None
         end = time.time() + timeout
@@ -85,7 +100,7 @@ class ClientUtils(object):
         raise Exception(msg)
 
 
-class Observers(Spec, BindUtils, ClientUtils):
+class ZoneObservers(Spec, BindUtils, ClientUtils):
 
     def before_all(self):
         self.client = DigaasClient(CONF.digaas.endpoint)
@@ -202,5 +217,127 @@ class Observers(Spec, BindUtils, ClientUtils):
         self._update_zone_in_bind(updated_zone)
 
         get_resp = self._wait_until_complete(resp.model.id)
+        expect(get_resp.model.status).to.equal("COMPLETE")
+        expect(get_resp.model.duration).to.be_greater_than(2)
+
+
+class RecordObservers(Spec, BindUtils, ClientUtils):
+
+    def before_all(self):
+        self.client = DigaasClient(CONF.digaas.endpoint)
+        self.rndc_target = load_rndc_target()
+
+    def before_each(self):
+        self.zone = datagen.random_zone()
+        self.record = datagen.random_record(self.zone)
+        self.updated_record = self.record.clone()
+        self.updated_record.data = datagen.random_ip()
+
+    def record_create_observer_goes_to_error_on_absent_zone(self):
+        _, resp = self._post_record_observer(
+            type="RECORD_CREATE", record=self.record, timeout=2)
+        time.sleep(3)
+
+        get_resp = self.client.get_observer(resp.model.id)
+        require(get_resp.status_code).to.equal(200)
+        expect(get_resp.model.status).to.equal("ERROR")
+        expect(get_resp.model.duration).to.be_none()
+
+    def record_update_observer_goes_to_error_on_absent_zone(self):
+        _, resp = self._post_record_observer(
+            type="RECORD_UPDATE", record=self.record, timeout=2)
+        time.sleep(3)
+
+        get_resp = self.client.get_observer(resp.model.id)
+        require(get_resp.status_code).to.equal(200)
+        expect(get_resp.model.status).to.equal("ERROR")
+        expect(get_resp.model.duration).to.be_none()
+
+    def record_create_observer_goes_to_active_on_created_record(self):
+        self._add_zone_to_bind(self.zone)
+        _, resp = self._post_record_observer(
+            type="RECORD_CREATE", record=self.record, timeout=10)
+        time.sleep(2)
+
+        # create the record in bind. be sure to bump the serial or maybe bind
+        # won't see the update (maybe that's only for slaves pulling changes)
+        updated_zone = self.zone.clone()
+        updated_zone.records.add(self.record)
+        updated_zone.serial += 1
+
+        self._update_zone_in_bind(updated_zone)
+        get_resp = self._wait_until_complete(resp.model.id)
+        expect(get_resp.model.status).to.equal("COMPLETE")
+        expect(get_resp.model.duration).to.be_greater_than(2)
+
+    def record_update_observer_goes_to_error_on_non_updated_record(self):
+        # push out a record
+        self.zone.records.add(self.record)
+        self._add_zone_to_bind(self.zone)
+
+        # watch for a different record
+        _, resp = self._post_record_observer(
+            type="RECORD_UPDATE", record=self.updated_record, timeout=2)
+
+        # ensure we timeout
+        time.sleep(3)
+
+        get_resp = self.client.get_observer(resp.model.id)
+        require(get_resp.status_code).to.equal(200)
+        expect(get_resp.model.status).to.equal("ERROR")
+        expect(get_resp.model.duration).to.be_none()
+
+    def record_update_observer_goes_to_active_on_updated_record(self):
+        # push out the initial record
+        initial_zone = self.zone.clone()
+        initial_zone.records.add(self.record)
+        self._add_zone_to_bind(initial_zone)
+
+        # watch for the updated record
+        _, resp = self._post_record_observer(
+            type="RECORD_UPDATE", record=self.updated_record, timeout=10)
+        time.sleep(2)
+
+        # push out the updated record
+        updated_zone = self.zone.clone()
+        updated_zone.records.add(self.updated_record)
+        updated_zone.serial += 1
+        self._update_zone_in_bind(updated_zone)
+
+        # check digaas found the updated record
+        get_resp = self._wait_until_complete(resp.model.id)
+        require(get_resp.status_code).to.equal(200)
+        expect(get_resp.model.status).to.equal("COMPLETE")
+        expect(get_resp.model.duration).to.be_greater_than(2)
+
+    def record_delete_observer_goes_to_error_on_never_deleted_record(self):
+        self.zone.records.add(self.record)
+        self._add_zone_to_bind(self.zone)
+
+        _, resp = self._post_record_observer(
+            type="RECORD_DELETE", record=self.record, timeout=2)
+
+        time.sleep(3)
+
+        get_resp = self.client.get_observer(resp.model.id)
+        require(get_resp.status_code).to.equal(200)
+        expect(get_resp.model.status).to.equal("ERROR")
+        expect(get_resp.model.duration).to.be_none()
+
+    def record_delete_observer_goes_to_active_on_deleted_record(self):
+        self.zone.records.add(self.record)
+        self._add_zone_to_bind(self.zone)
+
+        _, resp = self._post_record_observer(
+            type="RECORD_DELETE", record=self.record, timeout=10)
+        time.sleep(2)
+
+        # remove the record, but don't remove the zone
+        self.zone.records.remove(self.record)
+        self.zone.serial += 1
+        self._update_zone_in_bind(self.zone)
+
+        get_resp = self._wait_until_complete(resp.model.id)
+        require(get_resp.status_code).to.equal(200)
         expect(get_resp.model.status).to.equal("COMPLETE")
         expect(get_resp.model.duration).to.be_greater_than(2)
