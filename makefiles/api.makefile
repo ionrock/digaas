@@ -46,3 +46,7 @@ test-config:
 	@echo -e "endpoint = http://localhost:8123\n" >> test.conf
 	@echo -e "[bind]" >> test.conf
 	@echo -e "host = $(BIND_IP)" >> test.conf
+	@echo -e "type = docker\n" >> test.conf
+	@echo -e "[bind:docker]" >> test.conf
+	@echo -e "dir = /var/cache/bind" >> test.conf
+	@echo -e "id = digaas-bind" >> test.conf

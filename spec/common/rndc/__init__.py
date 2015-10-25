@@ -12,7 +12,7 @@ def load_rndc_target():
         )
     else:
         raise Exception("Unable to load bind target-type '%s'"
-                        % CONF.bind.target_type)
+                        % CONF.bind.type)
 
 if __name__ == '__main__':
     print load_rndc_target()
