@@ -39,6 +39,9 @@ class Zone(object):
         self.records = set(records)
         assert self.name.endswith('.')
 
+    def clone(self):
+        return self.__class__(**self.__dict__)
+
     def zone_file_string(self):
         result = textwrap.dedent("""
         $ORIGIN {name}

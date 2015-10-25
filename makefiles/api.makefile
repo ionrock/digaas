@@ -38,7 +38,7 @@ config:
 	@cat digaas.conf
 
 runtests: test-config start
-	specter --parallel --num-processes 4 || true
+	specter --parallel --num-processes 8 || true
 	@pkill -9 gunicorn
 
 test-config:

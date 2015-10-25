@@ -43,7 +43,7 @@ class Observer(object):
             raise ValueError("Type {0} not in {1}".format(
                 self.type, tuple(self.TYPES.__dict__.keys())))
 
-        if self.type == self.TYPES.ZONE_UPDATE and self.serial is not None:
+        if self.type == self.TYPES.ZONE_UPDATE and self.serial is None:
             raise ValueError("Serial must not be null for type {0}"
                              .format(self.type))
 
