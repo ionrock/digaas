@@ -1,7 +1,7 @@
 # if you want rndc to work from host to container,
 # the container needs to have a matching version of bind/rndc.
 # pick the same OS here as your host OS.
-FROM ubuntu:15.04
+FROM ubuntu:14.04
 
 EXPOSE 53/udp
 EXPOSE 53/tcp
