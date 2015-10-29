@@ -1,0 +1,31 @@
+FROM ubuntu:14.04
+
+RUN apt-get update && apt-get install -y \
+    graphite-carbon \
+    graphite-web \
+    apache2 \
+    libapache2-mod-wsgi \
+    curl \
+    ntp
+
+RUN service ntp stop && ntpd -gq && service ntp start
+
+RUN mkdir -p /usr/conf
+RUN cp /usr/share/graphite-web/apache2-graphite.conf /etc/apache2/sites-available/
+RUN cp /etc/carbon/carbon.conf /usr/conf/carbon.conf
+COPY aggregation-rules.conf /usr/conf/aggregation-rules.conf
+COPY storage-schemas.conf /usr/conf/storage-schemas.conf
+
+RUN echo "no" | graphite-manage syncdb
+RUN chown -R _graphite:_graphite /var/lib/graphite/
+RUN chown -R _graphite:_graphite /usr/share/graphite-web/
+RUN chmod 666 /var/lib/graphite/graphite.db
+RUN chmod +x /usr/share/graphite-web/graphite.wsgi
+
+RUN a2dissite 000-default && a2enmod wsgi && a2ensite apache2-graphite
+
+EXPOSE 80/tcp
+EXPOSE 2003/tcp
+EXPOSE 2023/tcp
+
+CMD carbon-cache start && carbon-aggregator start && service apache2 restart && tail -F /var/log/graphite/cache.log /var/log/apache2/access.log /var/log/apache2/error.log
