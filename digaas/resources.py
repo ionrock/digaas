@@ -146,22 +146,11 @@ class ObserverStatsResource(DigaasResource):
 class SummaryResource(DigaasResource):
     ROUTE = '/stats/{id}/summary'
 
-    def view_summaries_as_dict(self, summaries):
-        result = {}
-        for s in summaries:
-            assert s.type not in result
-            data = s.to_dict()
-            del data['id']
-            del data['type']
-            del data['stats_id']
-            result[s.type] = data
-        return result
-
     @logged
     def on_get(self, req, resp, id):
         try:
             summaries = Storage.get_summaries(id, models.Summary)
-            summaries = self.view_summaries_as_dict(summaries)
+            summaries = models.Summary.view_summaries_as_dict(summaries)
             resp.content_type = 'application/json'
             resp.body = json.dumps(summaries)
             resp.status = falcon.HTTP_200

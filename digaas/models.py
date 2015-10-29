@@ -123,3 +123,19 @@ class Summary(BaseModel):
         self.per99 = per99
         self.success_count = success_count
         self.error_count = error_count
+
+    @classmethod
+    def view_summaries_as_dict(self, summaries):
+        """Given a list of summaries, return them as a dict
+
+            { type: <summary>, type: <summary>, ... }
+        """
+        result = {}
+        for s in summaries:
+            assert s.type not in result
+            data = s.to_dict()
+            del data['id']
+            del data['type']
+            del data['stats_id']
+            result[s.type] = data
+        return result
