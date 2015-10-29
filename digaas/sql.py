@@ -1,7 +1,7 @@
 import logging
 
 import sqlalchemy
-from sqlalchemy import Table, Column, Integer, MetaData, String
+from sqlalchemy import Table, Column, Integer, MetaData, String, Float
 
 from digaas.config import cfg
 
@@ -38,7 +38,7 @@ observers_table = Table(
     Column('name', String(512), nullable=False),
     Column('nameserver', String(512), nullable=False),
     Column('start_time', Integer, nullable=False),
-    Column('duration', Integer, nullable=True),
+    Column('duration', Float, nullable=True),
     Column('status', String(32), nullable=False),
     Column('interval', Integer, nullable=False),
     Column('timeout', Integer, nullable=False),
@@ -50,6 +50,34 @@ observers_table = Table(
     # used only when polling for specific record data
     Column('rdata', String(512), nullable=True),
     Column('rdatatype', String(16), nullable=True),
+)
+
+stats_table = Table(
+    'stats', metadata,
+    Column('id', Integer, nullable=False, primary_key=True,
+           autoincrement=True),
+    Column('start', Integer, nullable=False),
+    Column('end', Integer, nullable=False),
+    Column('status', String(32), nullable=False),
+)
+
+summary_table = Table(
+    'summary', metadata,
+    Column('id', Integer, nullable=False, primary_key=True,
+           autoincrement=True),
+    Column('stats_id', Integer, nullable=False),
+    Column('type', String(32), nullable=False),
+    Column('average', Float, nullable=True),
+    Column('median', Float, nullable=True),
+    Column('min', Float, nullable=True),
+    Column('max', Float, nullable=True),
+    Column('per66', Float, nullable=True),
+    Column('per75', Float, nullable=True),
+    Column('per90', Float, nullable=True),
+    Column('per95', Float, nullable=True),
+    Column('per99', Float, nullable=True),
+    Column('success_count', Integer, nullable=False),
+    Column('error_count', Integer, nullable=False),
 )
 
 # tell sqlalchemy to create the tables

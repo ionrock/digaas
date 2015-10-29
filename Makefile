@@ -24,18 +24,22 @@ stop-containers:
 	make -s -f makefiles/db.makefile stop
 	make -s -f makefiles/bind.makefile stop
 
-start-api:
+start-api: stop-api
 	make -s -f makefiles/api.makefile config
 	make -s -f makefiles/api.makefile start
-	sleep 2
+	sleep 0.5
 	make -s -f makefiles/api.makefile check
 
 stop-api:
 	make -s -f makefiles/api.makefile stop
 
-start: start-containers start-api
+start: start-api
 
-stop: stop-api stop-containers
+stop: stop-api
+
+start-all: start-containers start-api
+
+stop-all: stop-api stop-containers
 
 run:
 	gunicorn -w 4 --bind '0.0.0.0:8123' digaas.app:app

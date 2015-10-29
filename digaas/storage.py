@@ -1,7 +1,8 @@
 import logging
 
-from digaas.sql import get_engine
 from sqlalchemy.sql import select, update
+
+from digaas.sql import get_engine
 
 LOG = logging.getLogger(__name__)
 
@@ -45,3 +46,18 @@ class Storage(object):
         data = {k: v for k, v in zip(result.keys(), row)}
         result.close()
         return obj_class.from_dict(data)
+
+    @classmethod
+    def get_summaries(cls, stats_id, obj_class):
+        stats_id = int(stats_id)
+        query = select([obj_class.TABLE]).where(
+            obj_class.TABLE.c.stats_id == stats_id
+        )
+        rows = get_engine().execute(query)
+
+        result = []
+        for row in rows:
+            data = {k: v for k, v in zip(rows.keys(), row)}
+            assert data['stats_id'] == stats_id
+            result.append(obj_class.from_dict(data))
+        return result

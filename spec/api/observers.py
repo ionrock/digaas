@@ -16,42 +16,42 @@ class BindUtils(object):
     def _add_zone_to_bind(self, zone):
         """This will make the zone queryable"""
         _, _, ret = self.rndc_target.write_zone_file(zone)
-        require(ret).to.equal(0)
+        assert ret == 0
 
         _, _, ret = self.rndc_target.addzone(zone)
-        require(ret).to.equal(0)
+        assert ret == 0
 
     def _update_zone_in_bind(self, updated_zone):
         _, _, ret = self.rndc_target.write_zone_file(updated_zone)
-        require(ret).to.equal(0)
+        assert ret == 0
 
         _, _, ret = self.rndc_target.reload(updated_zone)
-        require(ret).to.equal(0)
+        assert ret == 0
 
     def _remove_zone_from_bind(self, zone):
         """Remove the zone and zone file from bind"""
         _, _, ret = self.rndc_target.delzone(zone)
-        require(ret).to.equal(0)
+        assert ret == 0
 
         _, _, ret = self.rndc_target.delete_zone_file(zone)
-        require(ret).to.equal(0)
+        assert ret == 0
 
 
 class ClientUtils(object):
 
-    def _post_observer(self, type, timeout=5):
+    def _post_observer(self, type, timeout=5, start_time=None, zone=None):
         """Returns a tuple (observer, resp) where observer is the model that
         was posted to the api. The returned model is resp.model"""
         observer = Model.from_dict({
-            "name": self.zone.name,
+            "name": zone.name if zone else self.zone.name,
             "nameserver": CONF.bind.host,
-            "start_time": int(time.time()),
+            "start_time": start_time or int(time.time()),
             "interval": 1,
             "timeout": timeout,
             "type": type,
         })
         resp = self.client.post_observer(observer)
-        require(resp.status_code).to.equal(201)
+        assert resp.status_code == 201
         return observer, resp
 
     def _post_zone_update_observer(self, updated_zone, timeout=5):
@@ -65,7 +65,7 @@ class ClientUtils(object):
             "serial": updated_zone.serial,
         })
         resp = self.client.post_observer(observer)
-        require(resp.status_code).to.equal(201)
+        assert resp.status_code == 201
         return observer, resp
 
     def _post_record_observer(self, type, record, timeout=5):
@@ -83,12 +83,12 @@ class ClientUtils(object):
         require(resp.status_code).to.equal(201)
         return observer, resp
 
-    def _wait_until_complete(self, id, timeout=10, interval=0.5):
+    def _wait_until_complete(self, id, timeout=10, interval=1):
         get_resp = None
         end = time.time() + timeout
         while time.time() < end:
             get_resp = self.client.get_observer(id)
-            require(get_resp.status_code).to.equal(200)
+            assert get_resp.status_code == 200
             if get_resp.model.status == "COMPLETE":
                 return get_resp
             elif get_resp.model.status == "ERROR":
@@ -163,7 +163,7 @@ class ZoneObservers(Spec, BindUtils, ClientUtils):
         require(get_resp).not_to.be_none()
         require(get_resp.status_code).to.equal(200)
         expect(get_resp.model.status).to.equal("COMPLETE")
-        expect(get_resp.model.duration).to.be_a(int)
+        expect(get_resp.model.duration).to.be_a(float)
         expect(get_resp.model.duration).to.be_greater_than(2)
 
     def zone_delete_observer_goes_to_error_on_timeout(self):

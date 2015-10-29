@@ -14,6 +14,9 @@ class DigaasAPI(falcon.API):
         resources.RootResource,
         resources.ObserversResource,
         resources.ObserverResource,
+        resources.ObserverStatsCollection,
+        resources.ObserverStatsResource,
+        resources.SummaryResource,
     ]
 
     def __init__(self, *args, **kwargs):

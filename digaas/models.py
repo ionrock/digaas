@@ -1,11 +1,26 @@
+from digaas import consts
 from digaas.sql import observers_table
-from digaas.consts import ObserverStatuses, ObserverTypes
+from digaas.sql import stats_table
+from digaas.sql import summary_table
 
 
-class Observer(object):
+class BaseModel(object):
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(**data)
+
+    def to_dict(self):
+        return dict(self.__dict__)
+
+    def __str__(self):
+        return "{0}{1}".format(self.__class__.__name__, str(self.to_dict()))
+
+
+class Observer(BaseModel):
     TABLE = observers_table
-    TYPES = ObserverTypes()
-    STATUSES = ObserverStatuses()
+    TYPES = consts.ObserverTypes()
+    STATUSES = consts.ObserverStatuses()
 
     def __init__(self, name, nameserver, start_time, interval, timeout,
                  type, status=None, id=None, duration=None, serial=None,
@@ -54,12 +69,57 @@ class Observer(object):
             raise ValueError("rdata and rdatatype must both not be null for "
                              "RECORD_* types")
 
-    @classmethod
-    def from_dict(cls, data):
-        return cls(**data)
 
-    def to_dict(self):
-        return dict(self.__dict__)
+class ObserverStats(BaseModel):
+    TABLE = stats_table
+    STATUSES = consts.ObserverStatsStatuses()
 
-    def __str__(self):
-        return "{0}{1}".format(self.__class__.__name__, str(self.to_dict()))
+    def __init__(self, start, end, id=None, status=None):
+        """
+        :param start: the lower bound of the range of observers to select
+        :param end: the upper bound of the range of observers to select
+        :param id: the primary key from the database
+        :param status: the status of the asynchronous request
+        """
+        self.start = start
+        self.end = end
+        self.id = id
+        self.status = status
+
+    def validate(self):
+        if self.start is None or self.end is None:
+            raise ValueError("start and end must both not be null")
+        if self.start > self.end:
+            raise ValueError("start must be before end")
+
+
+class Summary(BaseModel):
+    TABLE = summary_table
+    TYPES = consts.SummaryTypes()
+
+    def __init__(self, stats_id, type, average, median, min, max, per66,
+                 per75, per90, per95, per99, success_count, error_count,
+                 id=None):
+        """The average/median/min/max are for the data in the range of time
+        select by the associated ObserverStats request. The perNN fields are
+        percentiles. We store the 66, 75, 90, 95, and 99 percentiles. The
+        median is the 50th percentile and the max is the 100th percentile.
+
+        :param id: the primary key from the database
+        :param stats_id: the id of the associated ObserverStats
+        :param type: the type of summary statistics
+        """
+        self.id = id
+        self.stats_id = stats_id
+        self.type = type
+        self.average = average
+        self.median = median
+        self.min = min
+        self.max = max
+        self.per66 = per66
+        self.per75 = per75
+        self.per90 = per90
+        self.per95 = per95
+        self.per99 = per99
+        self.success_count = success_count
+        self.error_count = error_count

@@ -4,9 +4,10 @@ import logging
 
 import falcon
 
+from digaas import models
 from digaas.storage import Storage
-from digaas.models import Observer
 from digaas.observe import spawn_observer
+from digaas.stats import spawn_stats_handler
 from digaas.version import VERSION
 
 LOG = logging.getLogger(__name__)
@@ -84,7 +85,7 @@ class ObserversResource(DigaasResource):
     ROUTE = '/observers'
 
     @logged
-    @falcon.before(deserializer(Observer))
+    @falcon.before(deserializer(models.Observer))
     def on_post(self, req, resp, model):
         if not model:
             return
@@ -102,9 +103,67 @@ class ObserverResource(DigaasResource):
     @logged
     def on_get(self, req, resp, id):
         try:
-            observer = Storage.get(id, Observer)
+            observer = Storage.get(id, models.Observer)
             resp.content_type = 'application/json'
             resp.body = json.dumps(observer.to_dict())
+            resp.status = falcon.HTTP_200
+        except Exception as e:
+            resp.status = falcon.HTTP_404
+            resp.body = make_error_body(str(e))
+
+
+class ObserverStatsCollection(DigaasResource):
+    ROUTE = '/stats'
+
+    @logged
+    @falcon.before(deserializer(models.ObserverStats))
+    def on_post(self, req, resp, model):
+        if not model:
+            return
+
+        model = spawn_stats_handler(model)
+
+        resp.content_type = 'application/json'
+        resp.body = json.dumps(model.to_dict())
+        resp.status = falcon.HTTP_201
+
+
+class ObserverStatsResource(DigaasResource):
+    ROUTE = '/stats/{id}'
+
+    @logged
+    def on_get(self, req, resp, id):
+        try:
+            observer_stats = Storage.get(id, models.ObserverStats)
+            resp.content_type = 'application/json'
+            resp.body = json.dumps(observer_stats.to_dict())
+            resp.status = falcon.HTTP_200
+        except Exception as e:
+            resp.status = falcon.HTTP_404
+            resp.body = make_error_body(str(e))
+
+
+class SummaryResource(DigaasResource):
+    ROUTE = '/stats/{id}/summary'
+
+    def view_summaries_as_dict(self, summaries):
+        result = {}
+        for s in summaries:
+            assert s.type not in result
+            data = s.to_dict()
+            del data['id']
+            del data['type']
+            del data['stats_id']
+            result[s.type] = data
+        return result
+
+    @logged
+    def on_get(self, req, resp, id):
+        try:
+            summaries = Storage.get_summaries(id, models.Summary)
+            summaries = self.view_summaries_as_dict(summaries)
+            resp.content_type = 'application/json'
+            resp.body = json.dumps(summaries)
             resp.status = falcon.HTTP_200
         except Exception as e:
             resp.status = falcon.HTTP_404

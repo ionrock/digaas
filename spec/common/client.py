@@ -34,3 +34,12 @@ class DigaasClient(BaseClient):
 
     def post_observer(self, model):
         return self.post('/observers', model)
+
+    def post_stats(self, model):
+        return self.post('/stats', model)
+
+    def get_stats(self, id):
+        return self.get('/stats/{0}'.format(id))
+
+    def get_summary(self, stats_id):
+        return self.get('/stats/{0}/summary'.format(stats_id))

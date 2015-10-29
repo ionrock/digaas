@@ -7,6 +7,7 @@ import dns.exception
 from digaas.models import Observer
 from digaas.storage import Storage
 import digaas.digdig as digdig
+from digaas.utils import log_exceptions
 
 LOG = logging.getLogger(__name__)
 
@@ -64,6 +65,7 @@ def finish_observer(observer, end_time):
     LOG.info('Observer is done %s', observer)
 
 
+@log_exceptions(LOG)
 def run_observer(observer, check_function):
     LOG.info('Starting observer %s', observer)
     end_time = None
@@ -83,6 +85,7 @@ def run_observer(observer, check_function):
     Storage.update(observer)
 
 
+@log_exceptions(LOG)
 def spawn_observer(observer):
     observer.status = Observer.STATUSES.ACCEPTED
     observer = Storage.create(observer)

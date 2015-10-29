@@ -15,7 +15,11 @@ class Model(object):
     def from_dict(cls, data):
         model = cls()
         for key in data:
-            setattr(model, key, data.get(key))
+            val = data.get(key)
+            if isinstance(val, dict):
+                setattr(model, key, Model.from_dict(val))
+            else:
+                setattr(model, key, val)
         return model
 
     def to_dict(self):

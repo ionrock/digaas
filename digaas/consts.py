@@ -14,3 +14,14 @@ class ObserverTypes(object):
         self.RECORD_CREATE = 'RECORD_CREATE'
         self.RECORD_UPDATE = 'RECORD_UPDATE'
         self.RECORD_DELETE = 'RECORD_DELETE'
+
+
+class ObserverStatsStatuses(ObserverStatuses):
+    pass
+
+
+class SummaryTypes(ObserverTypes):
+    """Summary statistics include all observer types + dns queries"""
+    def __init__(self):
+        super(SummaryTypes, self).__init__()
+        self.QUERY = 'QUERY'
