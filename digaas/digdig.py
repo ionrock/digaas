@@ -1,7 +1,10 @@
+import time
+
 import dns
 import dns.exception
 import dns.query
 
+from digaas import graphite
 from digaas.config import cfg
 
 
@@ -13,10 +16,19 @@ def prepare_query(zone_name, rdatatype):
 
 def dig(zone_name, nameserver, rdatatype):
     query = prepare_query(zone_name, rdatatype)
-    # start = time.time()
-    result = dns.query.udp(query, nameserver,
-                           timeout=cfg.CONF.digaas.dns_query_timeout)
-    # graphite.push_query_time(nameserver, time.time() - start)
+    start = time.time()
+
+    result = None
+    try:
+        result = dns.query.udp(query, nameserver,
+                               timeout=cfg.CONF.digaas.dns_query_timeout)
+    except dns.exception.Timeout:
+        diff = time.time() - start
+        graphite.publish_query_timeout(nameserver, diff)
+        raise
+
+    diff = time.time() - start
+    graphite.publish_query_success(nameserver, diff)
     return result
 
 

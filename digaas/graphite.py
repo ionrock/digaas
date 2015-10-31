@@ -34,6 +34,12 @@ def setup(host, port):
     gevent.spawn(graphite_worker, host, port)
 
 
+def publish(message):
+    if graphite_queue is None:
+        return
+    return graphite_queue.put(message)
+
+
 def publish_observer_data(observer):
     metric = "digaas.observers.{0}".format(observer.type)
     timestamp = int(time.time())
@@ -52,4 +58,39 @@ def publish_observer_data(observer):
             metric=metric,
             timestamp=timestamp,
         )
-    graphite_queue.put(message)
+    publish(message)
+
+
+def get_query_metric_name(nameserver):
+    nameserver = nameserver.replace('.', '-')
+    return "digaas.queries.{0}".format(nameserver)
+
+
+def publish_query_success(nameserver, response_time):
+    metric = get_query_metric_name(nameserver)
+    timestamp = int(time.time())
+    message = "{metric}.response_time {value} {timestamp}\n".format(
+        metric=metric,
+        value=response_time,
+        timestamp=timestamp,
+    )
+    message += "{metric}.success_count 1 {timestamp}\n".format(
+        metric=metric,
+        timestamp=timestamp,
+    )
+    publish(message)
+
+
+def publish_query_timeout(nameserver, timeout):
+    metric = get_query_metric_name(nameserver)
+    timestamp = int(time.time())
+    message = "{metric}.timeout {value} {timestamp}\n".format(
+        metric=metric,
+        value=timeout,
+        timestamp=timestamp,
+    )
+    message += "{metric}.timeout_count 1 {timestamp}\n".format(
+        metric=metric,
+        timestamp=timestamp,
+    )
+    publish(message)
