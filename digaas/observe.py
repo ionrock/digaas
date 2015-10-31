@@ -4,9 +4,10 @@ import time
 import gevent
 import dns.exception
 
+from digaas import digdig
+from digaas import graphite
 from digaas.models import Observer
 from digaas.storage import Storage
-import digaas.digdig as digdig
 from digaas.utils import log_exceptions
 
 LOG = logging.getLogger(__name__)
@@ -76,13 +77,14 @@ def run_observer(observer, check_function):
                 end_time = time.time()
                 break
         except dns.exception.Timeout as e:
-            print 'dns.query.udp timed out'
+            LOG.debug("Saw query timeout")
         except Exception as e:
-            print e
+            LOG.exception(e)
             break
         time.sleep(observer.interval)
     finish_observer(observer, end_time)
     Storage.update(observer)
+    graphite.publish_observer_data(observer)
 
 
 @log_exceptions(LOG)

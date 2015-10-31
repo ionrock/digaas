@@ -2,8 +2,9 @@ import logging
 
 import falcon
 
-from digaas.config import cfg
+from digaas import graphite
 from digaas import resources
+from digaas.config import cfg
 
 CONF = cfg.CONF
 
@@ -37,4 +38,5 @@ def setup_logging():
 
 
 setup_logging()
+graphite.setup(CONF.graphite.host, CONF.graphite.port)
 app = DigaasAPI()
