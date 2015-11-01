@@ -1,7 +1,5 @@
 from digaas import consts
-from digaas.sql import observers_table
-from digaas.sql import stats_table
-from digaas.sql import summary_table
+from digaas import sql
 
 
 class BaseModel(object):
@@ -18,7 +16,7 @@ class BaseModel(object):
 
 
 class Observer(BaseModel):
-    TABLE = observers_table
+    TABLE = sql.observers_table
     TYPES = consts.ObserverTypes()
     STATUSES = consts.ObserverStatuses()
 
@@ -71,7 +69,7 @@ class Observer(BaseModel):
 
 
 class ObserverStats(BaseModel):
-    TABLE = stats_table
+    TABLE = sql.stats_table
     STATUSES = consts.ObserverStatsStatuses()
 
     def __init__(self, start, end, id=None, status=None):
@@ -94,8 +92,7 @@ class ObserverStats(BaseModel):
 
 
 class Summary(BaseModel):
-    TABLE = summary_table
-    TYPES = consts.SummaryTypes()
+    TABLE = sql.summary_table
 
     def __init__(self, stats_id, type, average, median, min, max, per66,
                  per75, per90, per95, per99, success_count, error_count,
@@ -128,14 +125,38 @@ class Summary(BaseModel):
     def view_summaries_as_dict(self, summaries):
         """Given a list of summaries, return them as a dict
 
-            { type: <summary>, type: <summary>, ... }
+            {
+                "observers": { type: <summary> },
+                "queries": { nameserver: <summary },
+            }
         """
-        result = {}
+        result = {
+            "observers": {},
+            "queries": {},
+        }
         for s in summaries:
-            assert s.type not in result
             data = s.to_dict()
             del data['id']
             del data['type']
             del data['stats_id']
-            result[s.type] = data
+            if s.type in Observer.TYPES.__dict__:
+                result['observers'][s.type] = data
+            else:
+                result['queries'][s.type] = data
         return result
+
+
+class DnsQuery(BaseModel):
+    """Unlike the other models, this is just a container for passing around
+    query response time info from the database. There is not (currenlty) an API
+    resource that lets users create/perform dns queries."""
+
+    TABLE = sql.dnsquery_table
+    STATUSES = consts.DnsQueryStatuses()
+
+    def __init__(self, nameserver, status, timestamp, duration, id=None):
+        self.id = id
+        self.nameserver = nameserver
+        self.status = status
+        self.timestamp = timestamp
+        self.duration = duration

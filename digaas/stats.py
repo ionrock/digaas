@@ -6,6 +6,7 @@ from sqlalchemy.sql import select, and_
 
 from digaas.sql import get_engine
 from digaas.storage import Storage
+from digaas.models import DnsQuery
 from digaas.models import Observer
 from digaas.models import ObserverStats
 from digaas.models import Summary
@@ -42,19 +43,43 @@ def fetch_propagation_data(observer_stats):
                 'error': [],
                 'success': [],
             }
-        if status == 'COMPLETE':
+        if status == Observer.STATUSES.COMPLETE:
             data[type]['success'].append((start_time, duration))
         else:
             data[type]['error'].append((start_time, duration))
     return data
 
 
-def _compute_median(entries):
-    assert len(entries) > 0
-    mid = int(len(entries) / 2)
-    if len(entries) % 2 == 0:
-        return float(entries[mid - 1][1] + entries[mid][1]) / 2
-    return float(entries[mid][1])
+def fetch_dns_query_data(observer_stats):
+    """Return all query data in the range given by the observer stats model.
+
+    :returns: data, where data[nameserver][status] = [(timestamp, duration)].
+        status is either 'success' or 'error'
+    """
+    query = select([
+        DnsQuery.TABLE.c.nameserver,
+        DnsQuery.TABLE.c.status,
+        DnsQuery.TABLE.c.timestamp,
+        DnsQuery.TABLE.c.duration,
+    ]).where(
+        and_(DnsQuery.TABLE.c.timestamp >= observer_stats.start,
+             DnsQuery.TABLE.c.timestamp <= observer_stats.end)
+    )
+    rows = get_engine().execute(query)
+
+    data = {}
+    for row in rows:
+        nameserver, status, timestamp, duration = row
+        if nameserver not in data:
+            data[nameserver] = {
+                'error': [],
+                'success': [],
+            }
+        if status == DnsQuery.STATUSES.SUCCESS:
+            data[nameserver]['success'].append((timestamp, duration))
+        else:
+            data[nameserver]['error'].append((timestamp, duration))
+    return data
 
 
 def _compute_percentile(entries, percentile):
@@ -97,9 +122,9 @@ def _compute_summary_stats(entries):
         return result
 
     result['average'] = _compute_average(success)
-    result['median'] = _compute_median(success)
     result['min'] = success[0][1]
     result['max'] = success[-1][1]
+    result['median'] = _compute_percentile(success, 50)
     result['per66'] = _compute_percentile(success, 66)
     result['per75'] = _compute_percentile(success, 75)
     result['per90'] = _compute_percentile(success, 90)
@@ -119,27 +144,40 @@ def compute_propagation_summary_statistics(data):
     """data is the data returned by fetch_propagation_data"""
     return {
         type: _compute_summary_stats(entries)
-        for type, entries in data.iteritems()
+        for type, entries in data.items()
+    }
+
+
+def compute_query_summary_statistics(data):
+    """data is the data returned by fetch_dns_query_data"""
+    return {
+        nameserver: _compute_summary_stats(entries)
+        for nameserver, entries in data.items()
     }
 
 
 @log_exceptions(LOG)
 def stats_handler(observer_stats):
     data = fetch_propagation_data(observer_stats)
-    if not data:
-        LOG.debug("No data found for stats id=%s", observer_stats.id)
-        observer_stats.status = observer_stats.STATUSES.ERROR
-        Storage.update(observer_stats)
-        return
+    if data:
+        propagation_stats = compute_propagation_summary_statistics(data)
+        for type, summary_data in propagation_stats.items():
+            LOG.debug("Computed summary %s: %s", type, summary_data)
+            d = dict(summary_data)
+            d['stats_id'] = observer_stats.id
+            d['type'] = type
+            Storage.create(Summary(**d))
 
-    propagation_stats = compute_propagation_summary_statistics(data)
-    LOG.debug("propagation_stats: %s", propagation_stats)
-    for type, summary_data in propagation_stats.items():
-        LOG.debug("Computed summary %s: %s", type, summary_data)
-        d = dict(summary_data)
-        d['stats_id'] = observer_stats.id
-        d['type'] = type
-        Storage.create(Summary(**d))
+    query_data = fetch_dns_query_data(observer_stats)
+    if query_data:
+        query_stats = compute_query_summary_statistics(query_data)
+        for nameserver, summary_data in query_stats.items():
+            LOG.debug("Computed summary %s: %s", nameserver, summary_data)
+            d = dict(summary_data)
+            d['stats_id'] = observer_stats.id
+            d['type'] = nameserver
+            Storage.create(Summary(**d))
+
     observer_stats.status = observer_stats.STATUSES.COMPLETE
     Storage.update(observer_stats)
 

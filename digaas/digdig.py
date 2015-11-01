@@ -6,6 +6,32 @@ import dns.query
 
 from digaas import graphite
 from digaas.config import cfg
+from digaas.models import DnsQuery
+from digaas.storage import Storage
+
+
+def record_query_result(nameserver, timestamp, duration, timedout):
+    """Things we want to do here:
+        1. send graphite a metric value
+        2. store the query response time in the database
+    """
+    if timedout:
+        graphite.publish_query_timeout(nameserver, duration)
+        query_model = DnsQuery(
+            nameserver=nameserver,
+            timestamp=timestamp,
+            duration=duration,
+            status=DnsQuery.STATUSES.TIMEOUT,
+        )
+    else:
+        graphite.publish_query_success(nameserver, duration)
+        query_model = DnsQuery(
+            nameserver=nameserver,
+            timestamp=timestamp,
+            duration=duration,
+            status=DnsQuery.STATUSES.SUCCESS,
+        )
+    Storage.create(query_model)
 
 
 def prepare_query(zone_name, rdatatype):
@@ -24,11 +50,11 @@ def dig(zone_name, nameserver, rdatatype):
                                timeout=cfg.CONF.digaas.dns_query_timeout)
     except dns.exception.Timeout:
         diff = time.time() - start
-        graphite.publish_query_timeout(nameserver, diff)
+        record_query_result(nameserver, start, diff, timedout=True)
         raise
 
     diff = time.time() - start
-    graphite.publish_query_success(nameserver, diff)
+    record_query_result(nameserver, start, diff, timedout=False)
     return result
 
 

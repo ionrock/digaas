@@ -20,8 +20,7 @@ class ObserverStatsStatuses(ObserverStatuses):
     pass
 
 
-class SummaryTypes(ObserverTypes):
-    """Summary statistics include all observer types + dns queries"""
+class DnsQueryStatuses(object):
     def __init__(self):
-        super(SummaryTypes, self).__init__()
-        self.QUERY = 'QUERY'
+        self.SUCCESS = 'SUCCESS'
+        self.TIMEOUT = 'TIMEOUT'

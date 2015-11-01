@@ -80,5 +80,18 @@ summary_table = Table(
     Column('error_count', Integer, nullable=False),
 )
 
+# this stores response times for every dns query performed.
+# this should be append-only. no updates or deletes should occur to this table.
+# note: use InnoDB which does row-level (rather than table-level) locking
+dnsquery_table = Table(
+    'dnsquery', metadata,
+    Column('id', Integer, nullable=False, primary_key=True,
+           autoincrement=True),
+    Column('nameserver', String(32), nullable=False),
+    Column('status', String(32), nullable=False),
+    Column('timestamp', Integer, nullable=False),
+    Column('duration', Float, nullable=False),
+)
+
 # tell sqlalchemy to create the tables
 metadata.create_all(get_engine())

@@ -57,7 +57,7 @@ class ObserverStats(Spec, BindUtils, ClientUtils):
         summary_resp = self.client.get_summary(resp.model.id)
         require(summary_resp.status_code).to.equal(200)
 
-        s = summary_resp.model
+        s = summary_resp.model.observers
         # tests running in parallel may cause some ERRORed observers
         expect(s.ZONE_CREATE.error_count).to.be_a(int)
         expect(s.ZONE_CREATE.success_count).to.be_greater_than(0)
