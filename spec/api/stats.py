@@ -82,6 +82,27 @@ class ObserverStats(Spec, BindUtils, ClientUtils):
         expect(s.ZONE_CREATE.median).to.be_greater_than(2)
         expect(s.ZONE_CREATE.average).to.be_greater_than(2)
 
+    def can_get_plots(self):
+        start_time = int(time.time())
+        self._make_datapoint(start_time, duration_at_least=2)
+
+        model = Model.from_dict({
+            'start': start_time,
+            'end': start_time,
+        })
+        resp = self.client.post_stats(model)
+        require(resp.status_code).to.equal(201)
+
+        stats_id = resp.model.id
+        self._wait_for_stats(stats_id)
+        resp = self.client.get_propagation_plot(stats_id)
+        expect(resp.status_code).to.equal(200)
+        expect(resp.headers['content-type']).to.equal("image/png")
+
+        resp = self.client.get_query_plot(stats_id)
+        expect(resp.status_code).to.equal(200)
+        expect(resp.headers['content-type']).to.equal("image/png")
+
     def _wait_for_stats(self, id, timeout=10, interval=1):
         get_resp = None
         end = time.time() + timeout

@@ -1,6 +1,6 @@
 import logging
 
-from sqlalchemy.sql import select, update
+from sqlalchemy.sql import select, update, and_
 
 from digaas.sql import get_engine
 
@@ -61,3 +61,18 @@ class Storage(object):
             assert data['stats_id'] == stats_id
             result.append(obj_class.from_dict(data))
         return result
+
+    @classmethod
+    def get_plot(cls, stats_id, type, obj_class):
+        stats_id = int(stats_id)
+        query = select([obj_class.TABLE]).where(
+            and_(obj_class.TABLE.c.stats_id == stats_id,
+                 obj_class.TABLE.c.type == type)
+        )
+        result = get_engine().execute(query)
+        if result.rowcount == 0:
+            raise Exception("{0} with id={1} not found".format(
+                            obj_class.__name__, id))
+        row = result.fetchone()
+        data = {k: v for k, v in zip(result.keys(), row)}
+        return obj_class.from_dict(data)

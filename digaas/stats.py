@@ -4,12 +4,17 @@ import math
 import gevent
 from sqlalchemy.sql import select, and_
 
-from digaas.sql import get_engine
-from digaas.storage import Storage
 from digaas.models import DnsQuery
 from digaas.models import Observer
 from digaas.models import ObserverStats
 from digaas.models import Summary
+from digaas.models import Plot
+from digaas.plot import GnuplotData
+from digaas.plot import GnuplotStyle
+from digaas.plot import GnuplotConfig
+from digaas.plot import GnuplotScript
+from digaas.sql import get_engine
+from digaas.storage import Storage
 from digaas.utils import log_exceptions
 
 LOG = logging.getLogger(__name__)
@@ -91,7 +96,7 @@ def _compute_percentile(entries, percentile):
 
 def _compute_average(entries):
     assert len(entries) > 0
-    LOG.debug("Computing average for %s", entries)
+    LOG.debug("Computing average for %s points", len(entries))
     total = sum(x[1] for x in entries)
     return float(total) / len(entries)
 
@@ -156,6 +161,77 @@ def compute_query_summary_statistics(data):
     }
 
 
+def store_plot(type, gnuplot_script, observer_stats):
+    with open(gnuplot_script.get_output_plot_path(), 'rb') as f:
+        plot_model = Plot(
+            stats_id=observer_stats.id,
+            type=type,
+            mimetype='image/png',
+            image=f.read(),
+        )
+        Storage.create(plot_model)
+
+
+def plot_propagation_data(data, observer_stats):
+    COLORS = {
+        Observer.TYPES.ZONE_CREATE: "#FF0000",
+        Observer.TYPES.ZONE_UPDATE: "#FF7100",
+        Observer.TYPES.ZONE_DELETE: "#FFC200",
+        Observer.TYPES.RECORD_CREATE: "#0000FF",
+        Observer.TYPES.RECORD_UPDATE: "#910DFF",
+        Observer.TYPES.RECORD_DELETE: "#0D8CFF",
+    }
+    # 5 - square
+    # 9 - up arrow
+    # 11 - down arrow
+    POINTTYPES = {
+        Observer.TYPES.ZONE_CREATE: 9,
+        Observer.TYPES.ZONE_UPDATE: 5,
+        Observer.TYPES.ZONE_DELETE: 11,
+        Observer.TYPES.RECORD_CREATE: 5,
+        Observer.TYPES.RECORD_UPDATE: 5,
+        Observer.TYPES.RECORD_DELETE: 5,
+    }
+    config = GnuplotConfig(
+        xlabel="Timestamp of API request",
+        ylabel="Propagation time (seconds)",
+        title="API-to-nameserver propagation times (successes only)",
+    )
+
+    plots = []
+    for type in data:
+        success_data = data[type]['success']
+        gnuplot_data = GnuplotData(label=type, points=success_data)
+        gnuplot_style = GnuplotStyle(
+            pointtype=POINTTYPES.get(type, 5),
+            rgb_linecolor=COLORS.get(type),
+        )
+        plots.append((gnuplot_data, gnuplot_style))
+    script = GnuplotScript(config=config, plots=plots)
+    script.generate_plot()
+
+    store_plot(Plot.TYPES.PROPAGATION, script, observer_stats)
+
+
+def plot_query_data(data, observer_stats):
+    config = GnuplotConfig(
+        xlabel="Timestamp of query",
+        ylabel="Response time (seconds)",
+        title="DNS query response times (successful queries only)",
+    )
+
+    plots = []
+    for nameserver in data:
+        success_data = data[nameserver]['success']
+        gnuplot_data = GnuplotData(label=nameserver, points=success_data)
+        gnuplot_style = GnuplotStyle()
+        plots.append((gnuplot_data, gnuplot_style))
+    script = GnuplotScript(config=config, plots=plots)
+    script.generate_plot()
+
+    store_plot(Plot.TYPES.QUERY, script, observer_stats)
+
+
 @log_exceptions(LOG)
 def stats_handler(observer_stats):
     data = fetch_propagation_data(observer_stats)
@@ -167,6 +243,7 @@ def stats_handler(observer_stats):
             d['stats_id'] = observer_stats.id
             d['type'] = type
             Storage.create(Summary(**d))
+        plot_propagation_data(data, observer_stats)
 
     query_data = fetch_dns_query_data(observer_stats)
     if query_data:
@@ -177,6 +254,7 @@ def stats_handler(observer_stats):
             d['stats_id'] = observer_stats.id
             d['type'] = nameserver
             Storage.create(Summary(**d))
+        plot_query_data(query_data, observer_stats)
 
     observer_stats.status = observer_stats.STATUSES.COMPLETE
     Storage.update(observer_stats)

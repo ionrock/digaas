@@ -15,6 +15,9 @@ class BaseClient(object):
         resp.model = Model.from_json(resp.text)
         return resp
 
+    def get_raw(self, path):
+        return requests.get(self._url(path))
+
     def post(self, path, model):
         resp = requests.post(self._url(path), data=model.to_json())
         resp.model = Model.from_json(resp.text)
@@ -43,3 +46,9 @@ class DigaasClient(BaseClient):
 
     def get_summary(self, stats_id):
         return self.get('/stats/{0}/summary'.format(stats_id))
+
+    def get_propagation_plot(self, stats_id):
+        return self.get_raw('/stats/{0}/plots/propagation'.format(stats_id))
+
+    def get_query_plot(self, stats_id):
+        return self.get_raw('/stats/{0}/plots/query'.format(stats_id))

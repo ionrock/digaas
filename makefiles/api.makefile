@@ -38,7 +38,8 @@ config:
 	@echo -e "host = $(GRAPHITE_IP)"                      >> $(DIGAAS_CONF)
 	@echo -e "port = 2023\n"                              >> $(DIGAAS_CONF)
 	@echo -e "[digaas]"                                   >> $(DIGAAS_CONF)
-	@echo -e "dns_query_timeout = 2.0\n"                  >> $(DIGAAS_CONF)
+	@echo -e "dns_query_timeout = 2.0"                    >> $(DIGAAS_CONF)
+	@echo -e "tmp_dir = /tmp/digaas"                      >> $(DIGAAS_CONF)
 
 runtests: test-config start
 	specter --parallel --num-processes 8 || true

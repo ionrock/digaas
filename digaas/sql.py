@@ -1,7 +1,8 @@
 import logging
 
 import sqlalchemy
-from sqlalchemy import Table, Column, Integer, MetaData, String, Float
+from sqlalchemy import Table, Column, MetaData
+from sqlalchemy import Integer, Float, String, LargeBinary
 
 from digaas.config import cfg
 
@@ -91,6 +92,16 @@ dnsquery_table = Table(
     Column('status', String(32), nullable=False),
     Column('timestamp', Integer, nullable=False),
     Column('duration', Float, nullable=False),
+)
+
+plots_table = Table(
+    'plots', metadata,
+    Column('id', Integer, nullable=False, primary_key=True,
+           autoincrement=True),
+    Column('stats_id', Integer, nullable=False),
+    Column('type', String(32), nullable=False),
+    Column('mimetype', String(255), nullable=False),
+    Column('image', LargeBinary, nullable=False),
 )
 
 # tell sqlalchemy to create the tables

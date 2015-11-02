@@ -157,3 +157,27 @@ class SummaryResource(DigaasResource):
         except Exception as e:
             resp.status = falcon.HTTP_404
             resp.body = make_error_body(str(e))
+
+
+class PlotResource(DigaasResource):
+    ROUTE = '/stats/{id}/plots/{plot}'
+
+    @logged
+    def on_get(self, req, resp, id, plot):
+        try:
+            plot = plot.lower()
+            if plot == models.Plot.TYPES.PROPAGATION.lower():
+                plot = Storage.get_plot(
+                    id, models.Plot.TYPES.PROPAGATION, models.Plot)
+            elif plot == models.Plot.TYPES.QUERY.lower():
+                plot = Storage.get_plot(
+                    id, models.Plot.TYPES.QUERY, models.Plot)
+            else:
+                raise Exception("Plot with type '%s' not found" % type)
+
+            resp.content_type = plot.mimetype
+            resp.body = plot.image
+            resp.status = falcon.HTTP_200
+        except Exception as e:
+            resp.status = falcon.HTTP_404
+            resp.body = make_error_body(str(e))

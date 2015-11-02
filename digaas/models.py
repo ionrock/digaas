@@ -160,3 +160,16 @@ class DnsQuery(BaseModel):
         self.status = status
         self.timestamp = timestamp
         self.duration = duration
+
+
+class Plot(BaseModel):
+    """This is just a container for passing around data from the database."""
+    TABLE = sql.plots_table
+    TYPES = consts.PlotTypes()
+
+    def __init__(self, stats_id, type, mimetype, image, id=None):
+        self.id = id
+        self.stats_id = stats_id
+        self.type = type
+        self.mimetype = mimetype
+        self.image = image

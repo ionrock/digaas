@@ -4,6 +4,7 @@ import falcon
 
 from digaas import graphite
 from digaas import resources
+from digaas import utils
 from digaas.config import cfg
 
 CONF = cfg.CONF
@@ -18,6 +19,7 @@ class DigaasAPI(falcon.API):
         resources.ObserverStatsCollection,
         resources.ObserverStatsResource,
         resources.SummaryResource,
+        resources.PlotResource,
     ]
 
     def __init__(self, *args, **kwargs):
@@ -37,6 +39,15 @@ def setup_logging():
     )
 
 
+def setup_tmp_dir():
+    utils.ensure_dir_exists(CONF.digaas.tmp_dir)
+
+
+def setup_graphite():
+    graphite.setup(CONF.graphite.host, CONF.graphite.port)
+
+
+setup_tmp_dir()
 setup_logging()
-graphite.setup(CONF.graphite.host, CONF.graphite.port)
+setup_graphite()
 app = DigaasAPI()

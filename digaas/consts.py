@@ -24,3 +24,9 @@ class DnsQueryStatuses(object):
     def __init__(self):
         self.SUCCESS = 'SUCCESS'
         self.TIMEOUT = 'TIMEOUT'
+
+
+class PlotTypes(object):
+    def __init__(self):
+        self.PROPAGATION = 'PROPAGATION'
+        self.QUERY = 'QUERY'
