@@ -8,6 +8,7 @@ from digaas import utils
 from digaas.config import cfg
 
 CONF = cfg.CONF
+LOG = logging.getLogger(__name__)
 
 
 class DigaasAPI(falcon.API):
@@ -31,12 +32,16 @@ class DigaasAPI(falcon.API):
 def setup_logging():
     FORMAT = \
         '[%(asctime)s] {PID=%(process)d} %(name)s [%(levelname)s] %(message)s'
+    loglevel = CONF.digaas.loglevel
+    if loglevel:
+        loglevel = logging.getLevelName(loglevel.upper())
     logging.basicConfig(
-        filename='digaas.log',
+        filename=CONF.digaas.logfile,
         filemode='a',
         format=FORMAT,
-        level=logging.DEBUG,
+        level=loglevel,
     )
+    LOG.info("Digaas starting up...")
 
 
 def setup_tmp_dir():

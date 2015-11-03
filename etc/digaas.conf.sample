@@ -8,3 +8,5 @@ port =
 [digaas]
 dns_query_timeout = 2.0
 tmp_dir = /tmp/digaas
+logfile = /var/log/digaas/digaas.log
+loglevel = DEBUG

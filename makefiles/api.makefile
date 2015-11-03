@@ -40,6 +40,8 @@ config:
 	@echo -e "[digaas]"                                   >> $(DIGAAS_CONF)
 	@echo -e "dns_query_timeout = 2.0"                    >> $(DIGAAS_CONF)
 	@echo -e "tmp_dir = /tmp/digaas"                      >> $(DIGAAS_CONF)
+	@echo -e "logfile = /var/log/digaas/digaas.log"       >> $(DIGAAS_CONF)
+	@echo -e "loglevel = DEBUG"                           >> $(DIGAAS_CONF)
 
 runtests: test-config start
 	specter --parallel --num-processes 8 || true

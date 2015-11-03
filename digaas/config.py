@@ -26,13 +26,14 @@ cfg.CONF.register_opts([
                  help="the timeout on low-level dns queries"),
     cfg.StrOpt('tmp_dir', default='/tmp/digaas',
                help="a place to put temporary files (like gnuplot files)"),
+    cfg.StrOpt('logfile', default='/var/log/digaas/digaas.log'),
+    cfg.StrOpt('loglevel', default=None),
 ], group='digaas')
 
 
 def _find_config_file():
     for location in _LOCATIONS:
         if os.path.exists(location):
-            print('Using config file %s' % location)
             return location
     raise Exception("Failed to find digaas.conf at any of these paths: {0}"
                     .format(_LOCATIONS))
