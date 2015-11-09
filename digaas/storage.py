@@ -72,7 +72,7 @@ class Storage(object):
         result = get_engine().execute(query)
         if result.rowcount == 0:
             raise Exception("{0} with id={1} not found".format(
-                            obj_class.__name__, id))
+                            obj_class.__name__, stats_id))
         row = result.fetchone()
         data = {k: v for k, v in zip(result.keys(), row)}
         return obj_class.from_dict(data)

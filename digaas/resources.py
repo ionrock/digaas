@@ -108,6 +108,7 @@ class ObserverResource(DigaasResource):
             resp.body = json.dumps(observer.to_dict())
             resp.status = falcon.HTTP_200
         except Exception as e:
+            LOG.exception(e)
             resp.status = falcon.HTTP_404
             resp.body = make_error_body(str(e))
 
@@ -139,6 +140,7 @@ class ObserverStatsResource(DigaasResource):
             resp.body = json.dumps(observer_stats.to_dict())
             resp.status = falcon.HTTP_200
         except Exception as e:
+            LOG.exception(e)
             resp.status = falcon.HTTP_404
             resp.body = make_error_body(str(e))
 
@@ -155,6 +157,7 @@ class SummaryResource(DigaasResource):
             resp.body = json.dumps(summaries)
             resp.status = falcon.HTTP_200
         except Exception as e:
+            LOG.exception(e)
             resp.status = falcon.HTTP_404
             resp.body = make_error_body(str(e))
 
@@ -165,13 +168,25 @@ class PlotResource(DigaasResource):
     @logged
     def on_get(self, req, resp, id, plot):
         try:
-            plot = plot.lower()
-            if plot == models.Plot.TYPES.PROPAGATION.lower():
+            plot = plot.upper()
+            if plot == models.Plot.TYPES.PROPAGATION_BY_TYPE:
                 plot = Storage.get_plot(
-                    id, models.Plot.TYPES.PROPAGATION, models.Plot)
-            elif plot == models.Plot.TYPES.QUERY.lower():
+                    stats_id=id,
+                    type=models.Plot.TYPES.PROPAGATION_BY_TYPE,
+                    obj_class=models.Plot,
+                )
+            elif plot == models.Plot.TYPES.PROPAGATION_BY_NAMESERVER:
                 plot = Storage.get_plot(
-                    id, models.Plot.TYPES.QUERY, models.Plot)
+                    stats_id=id,
+                    type=models.Plot.TYPES.PROPAGATION_BY_NAMESERVER,
+                    obj_class=models.Plot,
+                )
+            elif plot == models.Plot.TYPES.QUERY:
+                plot = Storage.get_plot(
+                    stats_id=id,
+                    type=models.Plot.TYPES.QUERY,
+                    obj_class=models.Plot,
+                )
             else:
                 raise Exception("Plot with type '%s' not found" % type)
 
@@ -179,5 +194,6 @@ class PlotResource(DigaasResource):
             resp.body = plot.image
             resp.status = falcon.HTTP_200
         except Exception as e:
+            LOG.exception(e)
             resp.status = falcon.HTTP_404
             resp.body = make_error_body(str(e))

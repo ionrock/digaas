@@ -28,5 +28,13 @@ class DnsQueryStatuses(object):
 
 class PlotTypes(object):
     def __init__(self):
-        self.PROPAGATION = 'PROPAGATION'
+        self.PROPAGATION_BY_TYPE = 'PROPAGATION_BY_TYPE'
+        self.PROPAGATION_BY_NAMESERVER = 'PROPAGATION_BY_NAMESERVER'
         self.QUERY = 'QUERY'
+
+
+class SummaryViews(object):
+    def __init__(self):
+        self.QUERIES = 'QUERIES'
+        self.OBSERVERS_BY_TYPE = 'OBSERVERS_BY_TYPE'
+        self.OBSERVERS_BY_NAMESERVER = 'OBSERVERS_BY_NAMESERVER'

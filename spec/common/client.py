@@ -47,8 +47,6 @@ class DigaasClient(BaseClient):
     def get_summary(self, stats_id):
         return self.get('/stats/{0}/summary'.format(stats_id))
 
-    def get_propagation_plot(self, stats_id):
-        return self.get_raw('/stats/{0}/plots/propagation'.format(stats_id))
-
-    def get_query_plot(self, stats_id):
-        return self.get_raw('/stats/{0}/plots/query'.format(stats_id))
+    def get_plot(self, stats_id, plot_type):
+        uri = '/stats/{0}/plots/{1}'.format(stats_id, plot_type)
+        return self.get_raw(uri)

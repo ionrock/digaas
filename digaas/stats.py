@@ -22,16 +22,24 @@ LOG = logging.getLogger(__name__)
 
 def fetch_propagation_data(observer_stats):
     """Grab all data within the time range in the ObserverStats object.
+    This gives us two views of the data - by observer type and by nameserver.
 
-    :return: data, such that data[type][status] = [(start_time, duration)]
-        where status is either 'error' or 'success' and type is the observer
-        type.
+    The returns a dictionary, data, that looks like:
+
+            data[category][type][status] = [(start_time, duration)]
+
+    - category: either 'by_type' or 'by_nameserver'
+    - type:
+        - if the category is 'by_type', then type is the observer type
+        - if the category is 'by_nameserver', then type is a nameserver ip
+    - status: either 'success' or 'error'
     """
     columns = [
         Observer.TABLE.c.start_time,
         Observer.TABLE.c.duration,
         Observer.TABLE.c.type,
         Observer.TABLE.c.status,
+        Observer.TABLE.c.nameserver,
     ]
 
     query = select(columns).where(
@@ -40,18 +48,29 @@ def fetch_propagation_data(observer_stats):
     )
     result = get_engine().execute(query)
 
-    data = {}
+    data = {
+        'by_type': {},
+        'by_nameserver': {},
+    }
     for row in result:
-        start_time, duration, type, status = row
-        if type not in data:
-            data[type] = {
+        start_time, duration, type, status, nameserver = row
+        if type not in data['by_type']:
+            data['by_type'][type] = {
                 'error': [],
                 'success': [],
             }
+        if nameserver not in data['by_nameserver']:
+            data['by_nameserver'][nameserver] = {
+                'error': [],
+                'success': [],
+            }
+        datapoint = (start_time, duration)
         if status == Observer.STATUSES.COMPLETE:
-            data[type]['success'].append((start_time, duration))
+            data['by_type'][type]['success'].append(datapoint)
+            data['by_nameserver'][nameserver]['success'].append(datapoint)
         else:
-            data[type]['error'].append((start_time, duration))
+            data['by_type'][type]['error'].append(datapoint)
+            data['by_nameserver'][nameserver]['error'].append(datapoint)
     return data
 
 
@@ -172,7 +191,7 @@ def store_plot(type, gnuplot_script, observer_stats):
         Storage.create(plot_model)
 
 
-def plot_propagation_data(data, observer_stats):
+def plot_propagation_data_by_type(data, observer_stats):
     COLORS = {
         Observer.TYPES.ZONE_CREATE: "#FF0000",
         Observer.TYPES.ZONE_UPDATE: "#FF7100",
@@ -192,15 +211,17 @@ def plot_propagation_data(data, observer_stats):
         Observer.TYPES.RECORD_UPDATE: 5,
         Observer.TYPES.RECORD_DELETE: 5,
     }
+
+    # plot the propagation data by type
+    plots = []
     config = GnuplotConfig(
         xlabel="Timestamp of API request",
         ylabel="Propagation time (seconds)",
-        title="API-to-nameserver propagation times (successes only)",
+        title="API-to-nameserver propagation times by change type "
+              "(successful propagations only)",
     )
-
-    plots = []
-    for type in data:
-        success_data = data[type]['success']
+    for type in data['by_type']:
+        success_data = data['by_type'][type]['success']
         gnuplot_data = GnuplotData(label=type, points=success_data)
         gnuplot_style = GnuplotStyle(
             pointtype=POINTTYPES.get(type, 5),
@@ -209,8 +230,25 @@ def plot_propagation_data(data, observer_stats):
         plots.append((gnuplot_data, gnuplot_style))
     script = GnuplotScript(config=config, plots=plots)
     script.generate_plot()
+    store_plot(Plot.TYPES.PROPAGATION_BY_TYPE, script, observer_stats)
 
-    store_plot(Plot.TYPES.PROPAGATION, script, observer_stats)
+
+def plot_propagation_data_by_nameserver(data, observer_stats):
+    # plot the propagation data by nameserver
+    plots = []
+    config = GnuplotConfig(
+        xlabel="Timestamp of API request",
+        ylabel="Propagation time (seconds)",
+        title="API-to-nameserver propagation times by nameserver "
+              "(successful propagations only)",
+    )
+    for nameserver in data['by_nameserver']:
+        success_data = data['by_nameserver'][nameserver]['success']
+        gnuplot_data = GnuplotData(label=nameserver, points=success_data)
+        plots.append((gnuplot_data, GnuplotStyle()))
+    script = GnuplotScript(config=config, plots=plots)
+    script.generate_plot()
+    store_plot(Plot.TYPES.PROPAGATION_BY_NAMESERVER, script, observer_stats)
 
 
 def plot_query_data(data, observer_stats):
@@ -234,16 +272,37 @@ def plot_query_data(data, observer_stats):
 
 @log_exceptions(LOG)
 def stats_handler(observer_stats):
-    data = fetch_propagation_data(observer_stats)
-    if data:
-        propagation_stats = compute_propagation_summary_statistics(data)
+    propagation_data = fetch_propagation_data(observer_stats)
+    if propagation_data:
+        # compute observer summaries by type
+        propagation_stats = compute_propagation_summary_statistics(
+            propagation_data['by_type']
+        )
         for type, summary_data in propagation_stats.items():
             LOG.debug("Computed summary %s: %s", type, summary_data)
             d = dict(summary_data)
             d['stats_id'] = observer_stats.id
             d['type'] = type
+            d['view'] = Summary.VIEWS.OBSERVERS_BY_TYPE
             Storage.create(Summary(**d))
-        plot_propagation_data(data, observer_stats)
+
+        # compute observer summaries by nameserver
+        propagation_stats = compute_propagation_summary_statistics(
+            propagation_data['by_nameserver']
+        )
+        for nameserver, summary_data in propagation_stats.items():
+            LOG.debug("Computed summary %s: %s", type, summary_data)
+            d = dict(summary_data)
+            d['stats_id'] = observer_stats.id
+            d['type'] = nameserver
+            d['view'] = Summary.VIEWS.OBSERVERS_BY_NAMESERVER
+            Storage.create(Summary(**d))
+
+    plot_propagation_data_by_type(propagation_data, observer_stats)
+    plot_propagation_data_by_nameserver(propagation_data, observer_stats)
+
+    # attempt to free up this memory
+    del propagation_data
 
     query_data = fetch_dns_query_data(observer_stats)
     if query_data:
@@ -253,8 +312,10 @@ def stats_handler(observer_stats):
             d = dict(summary_data)
             d['stats_id'] = observer_stats.id
             d['type'] = nameserver
+            d['view'] = Summary.VIEWS.QUERIES
             Storage.create(Summary(**d))
-        plot_query_data(query_data, observer_stats)
+    plot_query_data(query_data, observer_stats)
+    del query_data
 
     observer_stats.status = observer_stats.STATUSES.COMPLETE
     Storage.update(observer_stats)

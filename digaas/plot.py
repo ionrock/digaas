@@ -140,9 +140,13 @@ class GnuplotScript(object):
         #   plot <line>, \
         #        <line>, \
         #        <line>
-        plot_string = ", \\\n     ".join([
-            self._get_plot_string(data, style) for data, style in self.plots
-        ])
+        if not self.plots:
+            plot_string = '0'
+        else:
+            plot_string = ", \\\n     ".join([
+                self._get_plot_string(data, style)
+                for data, style in self.plots
+            ])
         return "{0}\n\nplot {1}".format(self._get_header_string(), plot_string)
 
     def _get_plot_string(self, data, style):
@@ -172,4 +176,5 @@ class GnuplotScript(object):
         return "\n".join(lines).format(
             output_format=self.output_format,
             output_path=get_path(self.output_filename),
-            **self.config.__dict__)
+            **self.config.__dict__
+        )

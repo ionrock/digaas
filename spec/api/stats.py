@@ -57,7 +57,11 @@ class ObserverStats(Spec, BindUtils, ClientUtils):
         summary_resp = self.client.get_summary(resp.model.id)
         require(summary_resp.status_code).to.equal(200)
 
-        s = summary_resp.model.observers
+        require(summary_resp.model.observers_by_type).not_to.be_none()
+        require(summary_resp.model.observers_by_nameserver).not_to.be_none()
+        require(summary_resp.model.queries).not_to.be_none()
+
+        s = summary_resp.model.observers_by_type
         # tests running in parallel may cause some ERRORed observers
         expect(s.ZONE_CREATE.error_count).to.be_a(int)
         expect(s.ZONE_CREATE.success_count).to.be_greater_than(0)
@@ -95,11 +99,15 @@ class ObserverStats(Spec, BindUtils, ClientUtils):
 
         stats_id = resp.model.id
         self._wait_for_stats(stats_id)
-        resp = self.client.get_propagation_plot(stats_id)
+        resp = self.client.get_plot(stats_id, 'propagation_by_type')
         expect(resp.status_code).to.equal(200)
         expect(resp.headers['content-type']).to.equal("image/png")
 
-        resp = self.client.get_query_plot(stats_id)
+        resp = self.client.get_plot(stats_id, 'propagation_by_nameserver')
+        expect(resp.status_code).to.equal(200)
+        expect(resp.headers['content-type']).to.equal("image/png")
+
+        resp = self.client.get_plot(stats_id, 'query')
         expect(resp.status_code).to.equal(200)
         expect(resp.headers['content-type']).to.equal("image/png")
 

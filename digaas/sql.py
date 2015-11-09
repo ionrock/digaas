@@ -67,6 +67,7 @@ summary_table = Table(
     Column('id', Integer, nullable=False, primary_key=True,
            autoincrement=True),
     Column('stats_id', Integer, nullable=False),
+    Column('view', String(48), nullable=False),
     Column('type', String(32), nullable=False),
     Column('average', Float, nullable=True),
     Column('median', Float, nullable=True),

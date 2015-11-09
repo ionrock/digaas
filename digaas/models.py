@@ -93,8 +93,9 @@ class ObserverStats(BaseModel):
 
 class Summary(BaseModel):
     TABLE = sql.summary_table
+    VIEWS = consts.SummaryViews()
 
-    def __init__(self, stats_id, type, average, median, min, max, per66,
+    def __init__(self, stats_id, view, type, average, median, min, max, per66,
                  per75, per90, per95, per99, success_count, error_count,
                  id=None):
         """The average/median/min/max are for the data in the range of time
@@ -104,10 +105,13 @@ class Summary(BaseModel):
 
         :param id: the primary key from the database
         :param stats_id: the id of the associated ObserverStats
+        :param view: the category of data. This represents query response
+            times, propagation by nameserver, propagation by observer type, etc
         :param type: the type of summary statistics
         """
         self.id = id
         self.stats_id = stats_id
+        self.view = view
         self.type = type
         self.average = average
         self.median = median
@@ -126,23 +130,21 @@ class Summary(BaseModel):
         """Given a list of summaries, return them as a dict
 
             {
-                "observers": { type: <summary> },
+                "observers_by_type": { type: <summary> },
+                "observers_by_nameserver": { type: <summary> },
                 "queries": { nameserver: <summary },
             }
         """
         result = {
-            "observers": {},
-            "queries": {},
+            view.lower(): {} for view in self.VIEWS.__dict__
         }
         for s in summaries:
             data = s.to_dict()
             del data['id']
             del data['type']
             del data['stats_id']
-            if s.type in Observer.TYPES.__dict__:
-                result['observers'][s.type] = data
-            else:
-                result['queries'][s.type] = data
+            del data['view']
+            result[s.view.lower()][s.type] = data
         return result
 
 
