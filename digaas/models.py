@@ -175,3 +175,8 @@ class Plot(BaseModel):
         self.type = type
         self.mimetype = mimetype
         self.image = image
+
+    def __str__(self):
+        data = self.to_dict()
+        data['image'] = "<{0} bytes>".format(len(self.image))
+        return "{0}{1}".format(self.__class__.__name__, data)

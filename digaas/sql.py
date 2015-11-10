@@ -1,5 +1,3 @@
-import logging
-
 import sqlalchemy
 from sqlalchemy import Table, Column, MetaData
 from sqlalchemy import Integer, Float, String
@@ -18,9 +16,9 @@ _ENGINE = None
 #   3. if we use a handler to output to the same log file, we get two copies of
 #      the logs (one formatted and the other not)
 #   4. if we set `sql_logger.propagate = False`, we lose our default formatting
-sql_logger = logging.getLogger('sqlalchemy.engine.base.Engine')
-sql_logger.handlers = [logging.FileHandler('/dev/null')]
-sql_logger.setLevel(logging.DEBUG)
+# sql_logger = logging.getLogger('sqlalchemy.engine.base.Engine')
+# sql_logger.handlers = [logging.FileHandler('/dev/null')]
+# sql_logger.setLevel(logging.DEBUG)
 
 
 def get_engine():
@@ -28,7 +26,7 @@ def get_engine():
     if not _ENGINE:
         _ENGINE = sqlalchemy.create_engine(
             cfg.CONF.sqlalchemy.engine,
-            echo=True,
+            echo=False,
         )
     return _ENGINE
 
