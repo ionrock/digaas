@@ -60,6 +60,7 @@ class ObserverStats(Spec, BindUtils, ClientUtils):
         require(summary_resp.model.observers_by_type).not_to.be_none()
         require(summary_resp.model.observers_by_nameserver).not_to.be_none()
         require(summary_resp.model.queries).not_to.be_none()
+        require(summary_resp.model.queries_over_threshold).not_to.be_none()
 
         s = summary_resp.model.observers_by_type
         # tests running in parallel may cause some ERRORed observers

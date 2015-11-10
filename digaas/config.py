@@ -24,6 +24,9 @@ cfg.CONF.register_opts([
 cfg.CONF.register_opts([
     cfg.FloatOpt('dns_query_timeout', default=2.0,
                  help="the timeout on low-level dns queries"),
+    cfg.FloatOpt('dns_query_stats_threshold', default=1.0,
+                 help="Additional stats are computed about the number of "
+                      "queries that took longer than this many seconds"),
     cfg.StrOpt('tmp_dir', default='/tmp/digaas',
                help="a place to put temporary files (like gnuplot files)"),
     cfg.StrOpt('logfile', default='/var/log/digaas/digaas.log'),

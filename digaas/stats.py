@@ -4,6 +4,7 @@ import math
 import gevent
 from sqlalchemy.sql import select, and_
 
+from digaas.config import cfg
 from digaas.models import DnsQuery
 from digaas.models import Observer
 from digaas.models import ObserverStats
@@ -41,7 +42,6 @@ def fetch_propagation_data(observer_stats):
         Observer.TABLE.c.status,
         Observer.TABLE.c.nameserver,
     ]
-
     query = select(columns).where(
         and_(Observer.TABLE.c.start_time >= observer_stats.start,
              Observer.TABLE.c.start_time <= observer_stats.end)
@@ -74,21 +74,35 @@ def fetch_propagation_data(observer_stats):
     return data
 
 
-def fetch_dns_query_data(observer_stats):
+def fetch_dns_query_data(observer_stats, threshold=None):
     """Return all query data in the range given by the observer stats model.
 
     :returns: data, where data[nameserver][status] = [(timestamp, duration)].
         status is either 'success' or 'error'
     """
-    query = select([
+    columns = [
         DnsQuery.TABLE.c.nameserver,
         DnsQuery.TABLE.c.status,
         DnsQuery.TABLE.c.timestamp,
         DnsQuery.TABLE.c.duration,
-    ]).where(
-        and_(DnsQuery.TABLE.c.timestamp >= observer_stats.start,
-             DnsQuery.TABLE.c.timestamp <= observer_stats.end)
-    )
+    ]
+
+    if threshold is None:
+        query = select(columns).where(
+            and_(
+                DnsQuery.TABLE.c.timestamp >= observer_stats.start,
+                DnsQuery.TABLE.c.timestamp <= observer_stats.end,
+            )
+        )
+    else:
+        query = select(columns).where(
+            and_(
+                DnsQuery.TABLE.c.timestamp >= observer_stats.start,
+                DnsQuery.TABLE.c.timestamp <= observer_stats.end,
+                DnsQuery.TABLE.c.duration >= threshold,
+            )
+        )
+
     rows = get_engine().execute(query)
 
     data = {}
@@ -304,6 +318,7 @@ def stats_handler(observer_stats):
     # attempt to free up this memory
     del propagation_data
 
+    # compute stats for all queries
     query_data = fetch_dns_query_data(observer_stats)
     if query_data:
         query_stats = compute_query_summary_statistics(query_data)
@@ -314,7 +329,22 @@ def stats_handler(observer_stats):
             d['type'] = nameserver
             d['view'] = Summary.VIEWS.QUERIES
             Storage.create(Summary(**d))
+
     plot_query_data(query_data, observer_stats)
+    del query_data
+
+    # compute stats for all queries over a threshold
+    query_data = fetch_dns_query_data(
+        observer_stats, threshold=cfg.CONF.digaas.dns_query_stats_threshold)
+    if query_data:
+        query_stats = compute_query_summary_statistics(query_data)
+        for nameserver, summary_data in query_stats.items():
+            LOG.debug("Computed summary %s: %s", nameserver, summary_data)
+            d = dict(summary_data)
+            d['stats_id'] = observer_stats.id
+            d['type'] = nameserver
+            d['view'] = Summary.VIEWS.QUERIES_OVER_THRESHOLD
+            Storage.create(Summary(**d))
     del query_data
 
     observer_stats.status = observer_stats.STATUSES.COMPLETE

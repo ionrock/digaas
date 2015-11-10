@@ -39,6 +39,7 @@ config:
 	@echo -e "port = 2023\n"                              >> $(DIGAAS_CONF)
 	@echo -e "[digaas]"                                   >> $(DIGAAS_CONF)
 	@echo -e "dns_query_timeout = 2.0"                    >> $(DIGAAS_CONF)
+	@echo -e "dns_query_stats_threshold = 0.002"          >> $(DIGAAS_CONF)
 	@echo -e "tmp_dir = /tmp/digaas"                      >> $(DIGAAS_CONF)
 	@echo -e "logfile = /var/log/digaas/digaas.log"       >> $(DIGAAS_CONF)
 	@echo -e "loglevel = DEBUG"                           >> $(DIGAAS_CONF)

@@ -36,5 +36,6 @@ class PlotTypes(object):
 class SummaryViews(object):
     def __init__(self):
         self.QUERIES = 'QUERIES'
+        self.QUERIES_OVER_THRESHOLD = 'QUERIES_OVER_THRESHOLD'
         self.OBSERVERS_BY_TYPE = 'OBSERVERS_BY_TYPE'
         self.OBSERVERS_BY_NAMESERVER = 'OBSERVERS_BY_NAMESERVER'
