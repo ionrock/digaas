@@ -2,7 +2,8 @@ import logging
 
 import sqlalchemy
 from sqlalchemy import Table, Column, MetaData
-from sqlalchemy import Integer, Float, String, LargeBinary
+from sqlalchemy import Integer, Float, String
+from sqlalchemy.dialects.mysql import MEDIUMBLOB
 
 from digaas.config import cfg
 
@@ -102,7 +103,7 @@ plots_table = Table(
     Column('stats_id', Integer, nullable=False),
     Column('type', String(32), nullable=False),
     Column('mimetype', String(255), nullable=False),
-    Column('image', LargeBinary, nullable=False),
+    Column('image', MEDIUMBLOB, nullable=False),
 )
 
 # tell sqlalchemy to create the tables
