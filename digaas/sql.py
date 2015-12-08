@@ -27,6 +27,9 @@ def get_engine():
         _ENGINE = sqlalchemy.create_engine(
             cfg.CONF.sqlalchemy.engine,
             echo=False,
+            # "Above, any DBAPI connection that has been open for more than
+            # one hour will be invalidated and replaced, upon next checkout."
+            pool_recycle=3600,
         )
     return _ENGINE
 
