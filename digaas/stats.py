@@ -288,7 +288,7 @@ def plot_query_data(data, observer_stats):
 def stats_handler(observer_stats):
     propagation_data = fetch_propagation_data(observer_stats)
     if propagation_data:
-        # compute observer summaries by type
+        LOG.info("Computing summary stats by type")
         propagation_stats = compute_propagation_summary_statistics(
             propagation_data['by_type']
         )
@@ -300,7 +300,7 @@ def stats_handler(observer_stats):
             d['view'] = Summary.VIEWS.OBSERVERS_BY_TYPE
             Storage.create(Summary(**d))
 
-        # compute observer summaries by nameserver
+        LOG.info("Computing summary stats by type")
         propagation_stats = compute_propagation_summary_statistics(
             propagation_data['by_nameserver']
         )
@@ -318,11 +318,11 @@ def stats_handler(observer_stats):
     # attempt to free up this memory
     del propagation_data
 
-    # compute stats for all queries
+    LOG.info("Computing stats for all queries")
     query_data = fetch_dns_query_data(observer_stats)
     if query_data:
         query_stats = compute_query_summary_statistics(query_data)
-        for nameserver, summary_data in query_stats.items():
+        for nameserver, summary_data in query_stats.iteritems():
             LOG.debug("Computed summary %s: %s", nameserver, summary_data)
             d = dict(summary_data)
             d['stats_id'] = observer_stats.id
@@ -333,12 +333,12 @@ def stats_handler(observer_stats):
     plot_query_data(query_data, observer_stats)
     del query_data
 
-    # compute stats for all queries over a threshold
+    LOG.info("Computing stats for all queries over a threshold")
     query_data = fetch_dns_query_data(
         observer_stats, threshold=cfg.CONF.digaas.dns_query_stats_threshold)
     if query_data:
         query_stats = compute_query_summary_statistics(query_data)
-        for nameserver, summary_data in query_stats.items():
+        for nameserver, summary_data in query_stats.iteritems():
             LOG.debug("Computed summary %s: %s", nameserver, summary_data)
             d = dict(summary_data)
             d['stats_id'] = observer_stats.id
