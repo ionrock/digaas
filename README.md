@@ -79,8 +79,7 @@ The observer request json looks like:
 }
 ```
 
-An observer will query the `nameserver` for the `name`. It will query at
-`interval` queries per second, for up to `timeout` seconds.
+An observer will query the `nameserver` for the `name`. It will query every `interval` seconds, for up to `timeout` seconds.
 
 The `type` indicates the success condition, or when the observer should stop
 polling. This is one of:
@@ -141,7 +140,7 @@ curl -H 'Content-type: application/json' -H 'Accept: application/json' -X POST -
 This will:
 
 - poll the nameserver `8.8.8.8` for the name `rackspace.com`
-- poll at an interval of 1 query per second for up to 10 seconds
+- poll at an interval of a query every 1 second for up to 10 seconds
 
 Response:
 
