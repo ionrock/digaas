@@ -1,5 +1,12 @@
+from datetime import datetime
+
 from digaas import consts
 from digaas import sql
+
+
+def utcnow():
+    """Return the utc unix timestamp right now"""
+    return (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
 
 
 class BaseModel(object):
@@ -41,7 +48,7 @@ class Observer(BaseModel):
         self.id = id
         self.name = name
         self.nameserver = nameserver
-        self.start_time = start_time
+        self.start_time = start_time or utcnow()
         self.interval = interval
         self.timeout = timeout
         self.status = status
